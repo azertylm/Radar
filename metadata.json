@@ -1,0 +1,6 @@
+{
+  "name": "Radar — L'agrégateur culturel anti-FOMO",
+  "description": "Ne loupez plus rien de ce qui vous passionne : TV, streaming, YouTube, podcasts, réseaux sociaux et directs réunis selon vos goûts, votre temps libre et vos Jumeaux de goûts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
