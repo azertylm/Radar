@@ -1,6 +1,22 @@
 import React, { useState } from 'react';
-import { Bell, BellRing, Calendar, Clock, ExternalLink, Radio, Users } from 'lucide-react';
-import { AgendaDayGroup, AgendaEvent, ContentFormat } from '../types/radar';
+import {
+  Bell,
+  BellRing,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Radio,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
+import {
+  AgendaDayGroup,
+  AgendaEvent,
+  ContentFormat,
+  InterestCategory,
+  SpoilerRule,
+} from '../types/radar';
 import { getDirectPlatformLink } from '../utils/radarEngine';
 import { getFormatIcon } from './ContentCard';
 
@@ -8,6 +24,8 @@ interface AgendaTabProps {
   events: AgendaEvent[];
   remindedEventIds: string[];
   onToggleReminder: (eventId: string) => void;
+  spoilerRules: SpoilerRule[];
+  onToggleEventSpoiler: (spoilerTag: string, category: InterestCategory) => void;
 }
 
 const DAY_TABS: Array<{ id: AgendaDayGroup | 'all'; label: string }> = [
@@ -21,6 +39,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
   events,
   remindedEventIds,
   onToggleReminder,
+  spoilerRules,
+  onToggleEventSpoiler,
 }) => {
   const [selectedDay, setSelectedDay] = useState<AgendaDayGroup | 'all'>('all');
   const [selectedFormat, setSelectedFormat] = useState<ContentFormat | 'all'>('all');
@@ -30,6 +50,8 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
     if (selectedFormat !== 'all' && ev.format !== selectedFormat) return false;
     return true;
   });
+
+  const activeSpoilerCount = spoilerRules.filter((r) => !r.seen).length;
 
   const groups: Array<{ key: AgendaDayGroup; title: string; subtitle: string }> = [
     {
@@ -60,12 +82,20 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
               <span>L’Agenda universel des directs & sorties</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Accédez directement aux plateformes de diffusion ou activez un rappel 15 minutes avant le direct.
+              Accédez directement aux plateformes de diffusion, programmez un rappel 15 min avant ou activez le Bouclier Anti-Spoiler en 1 clic si vous regardez en différé.
             </p>
           </div>
 
-          <div className="text-xs font-mono tabular-nums text-amber-700 dark:text-amber-400 font-semibold">
-            {remindedEventIds.length} rappel{remindedEventIds.length > 1 ? 's' : ''} actif{remindedEventIds.length > 1 ? 's' : ''} (-15 min)
+          <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums font-semibold">
+            <span className="text-amber-700 dark:text-amber-400">
+              {remindedEventIds.length} rappel{remindedEventIds.length > 1 ? 's' : ''} (-15 min)
+            </span>
+            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+              |
+            </span>
+            <span className="text-indigo-700 dark:text-indigo-400">
+              {activeSpoilerCount} bouclier{activeSpoilerCount > 1 ? 's' : ''} Anti-Spoiler actif{activeSpoilerCount > 1 ? 's' : ''}
+            </span>
           </div>
         </div>
 
@@ -141,6 +171,11 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                 <div className="divide-y divide-slate-200 dark:divide-slate-800 rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 overflow-hidden">
                   {groupEvents.map((ev) => {
                     const isReminded = remindedEventIds.includes(ev.id);
+                    const isSpoilerProtected = spoilerRules.some(
+                      (r) =>
+                        !r.seen &&
+                        r.keyword.toLowerCase().trim() === ev.spoilerTag.toLowerCase().trim()
+                    );
                     const FormatIcon = getFormatIcon(ev.format);
                     const linkInfo = getDirectPlatformLink({
                       title: ev.title,
@@ -200,7 +235,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                             {ev.subtitle}
                           </p>
 
-                          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
                             <span className="inline-flex items-center gap-1 font-mono tabular-nums">
                               <Clock className="w-3.5 h-3.5" />
                               <span>Durée : {ev.durationMinutes} min</span>
@@ -210,10 +245,14 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                               <Users className="w-3.5 h-3.5 text-amber-500" />
                               <span>Attendu par {ev.twinInterestCount} Jumeaux</span>
                             </span>
+                            <span aria-hidden="true">·</span>
+                            <span className="font-mono text-slate-500 dark:text-slate-400">
+                              Mot-clé bouclier : « {ev.spoilerTag} »
+                            </span>
                           </div>
                         </div>
 
-                        {/* Direct Link + Reminder Action Buttons */}
+                        {/* Direct Link + Reminder + Anti-Spoiler Action Buttons */}
                         <div className="flex flex-wrap items-center gap-2 shrink-0">
                           <a
                             href={linkInfo.url}
@@ -234,7 +273,7 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                                 ? `Rappel activé 15 min avant pour ${ev.title}`
                                 : `Me rappeler 15 min avant pour ${ev.title}`
                             }
-                            className={`min-h-[44px] px-4 py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                            className={`min-h-[44px] px-3.5 py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                               isReminded
                                 ? 'bg-amber-500 text-slate-950 border-amber-500 font-bold'
                                 : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -242,13 +281,41 @@ export const AgendaTab: React.FC<AgendaTabProps> = ({
                           >
                             {isReminded ? (
                               <>
-                                <BellRing className="w-4 h-4" />
-                                <span>Rappel activé (-15 min)</span>
+                                <BellRing className="w-3.5 h-3.5" />
+                                <span>Rappel (-15 min)</span>
                               </>
                             ) : (
                               <>
-                                <Bell className="w-4 h-4" />
+                                <Bell className="w-3.5 h-3.5" />
                                 <span>Me rappeler (15 min avant)</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onToggleEventSpoiler(ev.spoilerTag, ev.category)}
+                            aria-pressed={isSpoilerProtected}
+                            aria-label={
+                              isSpoilerProtected
+                                ? `Désactiver l'Anti-Spoiler pour ${ev.spoilerTag}`
+                                : `Activer l'Anti-Spoiler pour ${ev.spoilerTag}`
+                            }
+                            className={`min-h-[44px] px-3.5 py-2.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                              isSpoilerProtected
+                                ? 'bg-indigo-600 text-white border-indigo-600 font-bold'
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-500'
+                            }`}
+                          >
+                            {isSpoilerProtected ? (
+                              <>
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>Anti-Spoiler actif</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShieldAlert className="w-3.5 h-3.5" />
+                                <span>Activer l’Anti-Spoiler</span>
                               </>
                             )}
                           </button>

@@ -180,7 +180,7 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
         creator: 'Arte Découverte',
         format: 'TV/Replay',
         category: interests[0] || 'Sciences',
-        durationMinutes: 26,
+        durationMinutes: 34,
         urgency: 'expiring',
         expiresInHours: 14,
         mood: 'learn',
@@ -188,6 +188,13 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
         twinCount: 5,
         summary:
           "Une plongée fascinante à bord des navires câbliers qui maintiennent 99 % du trafic internet mondial face aux tempêtes et aux tensions géopolitiques.",
+        threeBulletPoints: [
+          'Immersion de 34 minutes avec les soudeurs de fibre optique en pleine mer.',
+          'Cartographie inédite des nœuds stratégiques reliant Brest, Marseille et New York.',
+          'Disponible gratuitement en replay sur Arte.tv pendant encore 14 heures.',
+        ],
+        highlightTimestamp: '19:40',
+        highlightLabel: 'Réparation nocturne d’une fibre à 3 200 mètres de profondeur',
         actionUrl: 'https://www.arte.tv/fr/',
       },
       {
@@ -199,26 +206,16 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
         durationMinutes: 18,
         urgency: 'live',
         mood: 'learn',
-        twinMatchPercent: 93,
+        twinMatchPercent: 94,
         twinCount: 4,
         summary:
           'Les réalisateurs de "Flow" et "Mars Express" répondent en direct aux questions des spectateurs sur leurs techniques de rendu hybride.',
+        threeBulletPoints: [
+          'Démonstration en direct des pinceaux 2D projetés sur des décors 3D sous Blender.',
+          'Retour d’expérience sur la production indépendante à budget maîtrisé.',
+          'Questions/réponses ouvertes au public francophone.',
+        ],
         actionUrl: 'https://www.youtube.com/',
-      },
-      {
-        title: 'Chronique stand-up : Quand les algorithmes décident de notre soirée du vendredi',
-        source: 'France Inter · Podcast',
-        creator: 'L’Humour du Soir',
-        format: 'Podcasts',
-        category: 'Humour',
-        durationMinutes: 7,
-        urgency: 'anytime',
-        mood: 'laugh',
-        twinMatchPercent: 91,
-        twinCount: 6,
-        summary:
-          "Sept minutes d'autodérision mordante sur nos quarante-cinq minutes passées à faire défiler les catalogues de streaming avant de s'endormir.",
-        actionUrl: 'https://www.radiofrance.fr/franceinter',
       },
     ];
 
@@ -229,12 +226,12 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-4-hydrogen',
-        contents: `Suggère 3 nouvelles pépites culturelles ou médiatiques réalistes en français (articles, replays TV, vidéos YouTube, podcasts, lives) correspondant aux goûts : ${interests.join(', ')} sur les plateformes : ${platforms.join(', ')} (Humeur souhaitée : ${mood}).
+        contents: `Suggère 2 nouvelles pépites culturelles ou médiatiques réalistes en français (articles, replays TV, vidéos YouTube, podcasts, lives) correspondant aux goûts : ${interests.join(', ')} sur les plateformes : ${platforms.join(', ')} (Humeur souhaitée : ${mood}).
 Évite ces titres déjà présents : ${existingTitles.slice(0, 15).join(' | ')}.`,
         config: {
           thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
           systemInstruction:
-            'Tu es un curateur culturel français expert pour l’application anti-FOMO Radar. Propose des contenus réalistes, précis, variés et captivants.',
+            'Tu es un curateur culturel français expert pour l’application anti-FOMO Radar. Propose des contenus réalistes, précis, variés et captivants avec 3 points clés.',
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
@@ -245,29 +242,21 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
                   type: Type.OBJECT,
                   properties: {
                     title: { type: Type.STRING },
-                    source: { type: Type.STRING, description: 'Ex: Arte.tv, France Inter, YouTube, MUBI, Le Monde' },
+                    source: { type: Type.STRING },
                     creator: { type: Type.STRING },
-                    format: {
-                      type: Type.STRING,
-                      description: 'Un parmi: TV/Replay, YouTube, Podcasts, Réseaux sociaux, Streaming, Presse',
-                    },
-                    category: {
-                      type: Type.STRING,
-                      description: 'Un parmi: Tech/IA, Cinéma, Sport, Musique, Humour, Actualités, Sciences, Gaming, Culture',
-                    },
+                    format: { type: Type.STRING },
+                    category: { type: Type.STRING },
                     durationMinutes: { type: Type.INTEGER },
-                    urgency: {
-                      type: Type.STRING,
-                      description: 'Un parmi: live, expiring, anytime',
-                    },
+                    urgency: { type: Type.STRING },
                     expiresInHours: { type: Type.INTEGER },
-                    mood: {
-                      type: Type.STRING,
-                      description: 'Un parmi: laugh, learn, background, serious',
-                    },
+                    mood: { type: Type.STRING },
                     twinMatchPercent: { type: Type.INTEGER },
                     twinCount: { type: Type.INTEGER },
                     summary: { type: Type.STRING },
+                    threeBulletPoints: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                    },
                     actionUrl: { type: Type.STRING },
                   },
                   required: [
@@ -282,6 +271,7 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
                     'twinMatchPercent',
                     'twinCount',
                     'summary',
+                    'threeBulletPoints',
                   ],
                 },
               },
@@ -299,6 +289,52 @@ Structure la réponse en 5 à 6 segments chronométrés (Introduction, 3 ou 4 su
     } catch (error) {
       console.warn('Fallback to dynamic gems suggestion:', error);
       return res.json({ gems: fallbackGems, generatedBy: 'curation-dynamique' });
+    }
+  });
+
+  // 3. Endpoint: Generate "Résumé avant de cliquer" (3 points clés en 10s) via Gemini
+  app.post('/api/gemini/summarize-item', async (req, res) => {
+    const { title = '', source = '', summary = '', category = '' } = req.body || {};
+    const ai = getGenAIClient();
+
+    const fallbackPoints = [
+      `Synthèse rapide (${category} · ${source}) : ${summary.slice(0, 110)}...`,
+      'Format validé par vos Jumeaux de goûts pour son rythme sans remplissage ni longueur inutile.',
+      'Pourquoi cliquer : apporte un éclairage concret et original en quelques minutes.',
+    ];
+
+    if (!ai) {
+      return res.json({ points: fallbackPoints, generatedBy: 'synthese-locale' });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-4-hydrogen',
+        contents: `Génère exactement 3 points clés ultra-concis ("Résumé avant de cliquer" lisible en 10 secondes) en français pour ce contenu :
+Titre : "${title}" (${source} · ${category})
+Description : ${summary}`,
+        config: {
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              points: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+            },
+            required: ['points'],
+          },
+        },
+      });
+      const parsed = JSON.parse((response.text ?? '{}').trim());
+      if (!parsed.points || !Array.isArray(parsed.points) || parsed.points.length < 3) {
+        return res.json({ points: fallbackPoints, generatedBy: 'synthese-locale' });
+      }
+      return res.json({ points: parsed.points.slice(0, 3), generatedBy: 'gemini-4-hydrogen' });
+    } catch {
+      return res.json({ points: fallbackPoints, generatedBy: 'synthese-locale' });
     }
   });
 

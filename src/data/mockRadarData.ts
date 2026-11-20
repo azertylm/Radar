@@ -1,8 +1,13 @@
 import {
   AgendaEvent,
   ContentFormat,
+  FilRougeStoryline,
   InterestCategory,
+  MuteRule,
   RadarContentItem,
+  SpoilerRule,
+  SubscriptionId,
+  SurpriseGuestProfile,
   TasteTwinProfile,
   TrustCircleMember,
 } from '../types/radar';
@@ -36,12 +41,245 @@ export const ALL_PLATFORMS: Array<{
   { id: 'Presse', label: 'Presse & Longs formats', examples: 'Le Monde, Mediapart, Les Jours, Courrier Int.' },
 ];
 
+export const ALL_SUBSCRIPTIONS: Array<{
+  id: SubscriptionId;
+  label: string;
+  description: string;
+}> = [
+  { id: 'free', label: 'Accès Libre & Gratuit', description: 'Arte.tv, France.tv, YouTube, Radio France, Twitch, Presse ouverte' },
+  { id: 'canal', label: 'Canal+ / myCANAL', description: 'Cinéma récent, créations originales, Ligue des Champions, Top 14' },
+  { id: 'netflix', label: 'Netflix', description: 'Séries internationales, documentaires et films originaux' },
+  { id: 'mubi', label: 'MUBI', description: 'Cinéma d’auteur, festivals et restaurations 4K' },
+  { id: 'prime', label: 'Prime Video', description: 'Séries, cinéma et soirées sportives' },
+  { id: 'disney', label: 'Disney+', description: 'FX, National Geographic, animation et cinéma' },
+  { id: 'bein', label: 'beIN Sports', description: 'NBA, tennis, grands championnats européens' },
+  { id: 'presse_abo', label: 'Presse Abonnés', description: 'Le Monde, Mediapart, Les Jours (éditions abonné)' },
+];
+
+export const INITIAL_SPOILER_RULES: SpoilerRule[] = [
+  { id: 'sp-1', keyword: 'PSG — Bayern Munich', category: 'Sport', seen: false },
+  { id: 'sp-2', keyword: 'Le Bureau des Ombres', category: 'Cinéma', seen: false },
+];
+
+export const INITIAL_MUTE_RULES: MuteRule[] = [
+  { id: 'mute-1', keyword: 'Mercato rumeurs', duration: '7d', createdAtLabel: 'Actif pour 7 jours' },
+];
+
+export const INITIAL_SURPRISE_GUESTS: SurpriseGuestProfile[] = [
+  {
+    id: 'guest-1',
+    name: 'Alexandre Astier',
+    role: 'Réalisateur, compositeur & humoriste',
+    specialty: 'Cinéma',
+    followed: true,
+    appearances: [
+      {
+        id: 'app-1',
+        showTitle: 'Podcast indé « Contrepoint & Bach » : 1h30 sur l’écriture contrapuntique au cinéma',
+        hostMedia: 'Podcast Indépendant · Contrepoint Audio',
+        format: 'Podcasts',
+        dateLabel: 'Sorti il y a 3h',
+        unexpectedReason: 'Apparition surprise sur un petit podcast de musicologie (2 100 abonnés)',
+        durationMinutes: 88,
+        highlightTimestamp: '34:10 – Pourquoi il compose ses bandes originales avant de monter les scènes',
+      },
+      {
+        id: 'app-2',
+        showTitle: 'Masterclass improvisée après une projection étudiante à la Cinémathèque de Lyon',
+        hostMedia: 'YouTube · CinéClub Lumière',
+        format: 'YouTube',
+        dateLabel: 'Hier soir',
+        unexpectedReason: 'Chaîne YouTube universitaire non répertoriée dans les flux habituels',
+        durationMinutes: 42,
+        highlightTimestamp: '18:45 – Ses conseils sur le rythme des dialogues comiques',
+      },
+    ],
+  },
+  {
+    id: 'guest-2',
+    name: 'Victor Wembanyama',
+    role: 'Joueur NBA & passionné de SF',
+    specialty: 'Sport',
+    followed: true,
+    appearances: [
+      {
+        id: 'app-3',
+        showTitle: 'Club de lecture Fantasy & Science-Fiction : Discussion sur Brandon Sanderson',
+        hostMedia: 'YouTube · La Bibliothèque Imaginaire',
+        format: 'YouTube',
+        dateLabel: 'Il y a 5h',
+        unexpectedReason: 'Invité surprise d’une chaîne littéraire francophone pendant un jour off à San Antonio',
+        durationMinutes: 35,
+        highlightTimestamp: '14:20 – Ses 3 romans de science-fiction favoris en déplacement',
+      },
+    ],
+  },
+  {
+    id: 'guest-3',
+    name: 'Alain Aspect',
+    role: 'Prix Nobel de Physique',
+    specialty: 'Sciences',
+    followed: true,
+    appearances: [
+      {
+        id: 'app-4',
+        showTitle: 'Live Twitch nocturne : Expliquer l’intrication quantique aux joueurs de Factorio',
+        hostMedia: 'Twitch · Sciences & Pixels',
+        format: 'Streaming',
+        dateLabel: 'Ce soir · Rediffusion',
+        unexpectedReason: 'Intervention en direct chez un streamer gaming/ingénierie pendant 50 minutes',
+        durationMinutes: 52,
+        highlightTimestamp: '27:00 – La démonstration en direct des inégalités de Bell',
+      },
+    ],
+  },
+  {
+    id: 'guest-4',
+    name: 'Kyan Khojandi',
+    role: 'Auteur, comédien & réalisateur',
+    specialty: 'Humour',
+    followed: true,
+    appearances: [
+      {
+        id: 'app-5',
+        showTitle: 'Table ronde technique : Le montage ultra-rapide sur DaVinci Resolve & Premiere',
+        hostMedia: 'Podcast · Les Monteurs Associés',
+        format: 'Podcasts',
+        dateLabel: 'Il y a 1 jour',
+        unexpectedReason: 'Podcast professionnel d’artisans monteurs cinéma (3 200 écoutes)',
+        durationMinutes: 64,
+        highlightTimestamp: '41:12 – Comment gagner 3 secondes de comédie en coupant une respiration',
+      },
+    ],
+  },
+];
+
+export const INITIAL_FILS_ROUGES: FilRougeStoryline[] = [
+  {
+    id: 'fil-1',
+    title: 'Sommet Européen de l’IA Open-Source à Paris',
+    category: 'Tech/IA',
+    subtitle: 'Des annonces de modèles locaux aux débats sur la souveraineté énergétique et culturelle',
+    activeFollowers: 1420,
+    steps: [
+      {
+        id: 'f1-s1',
+        timeLabel: '09h30 · L’ouverture',
+        mediaType: 'Presse',
+        source: 'Le Monde · Tech',
+        title: 'Pourquoi l’Europe mise tout sur les petits modèles frugaux embarqués',
+        summary: 'Article de cadrage avant l’ouverture des portes à la Station F et au Grand Palais.',
+        durationMinutes: 6,
+      },
+      {
+        id: 'f1-s2',
+        timeLabel: '14h00 · La Keynote',
+        mediaType: 'YouTube',
+        source: 'YouTube Live · Paris Tech Summit',
+        title: 'Keynote Européenne : Les modèles IA open-weight qui tournent en local',
+        summary: 'Démonstration sur smartphone sans cloud avec latence divisée par quatre.',
+        durationMinutes: 15,
+      },
+      {
+        id: 'f1-s3',
+        timeLabel: '16h15 · La réaction à chaud',
+        mediaType: 'Réseaux sociaux',
+        source: 'Bluesky · Thread Ingénieurs',
+        title: 'Benchmark indépendant : Comparatif réel de consommation batterie des nouveaux modèles',
+        summary: '12 graphiques publiés par des chercheurs de l’INRIA testant les modèles annoncés à 14h.',
+        durationMinutes: 4,
+      },
+      {
+        id: 'f1-s4',
+        timeLabel: '18h30 · Le débat du soir',
+        mediaType: 'Podcasts',
+        source: 'France Culture · Le Temps du Débat',
+        title: 'IA locale vs Géants du Cloud : Qui contrôlera nos assistants demain ?',
+        summary: 'Table ronde contradictoire de 35 minutes enregistrée en clôture de la première journée.',
+        durationMinutes: 35,
+      },
+    ],
+  },
+  {
+    id: 'fil-2',
+    title: 'Soirée Quarts de Finale : Ligue des Champions',
+    category: 'Sport',
+    subtitle: 'Du décryptage tactique d’avant-match au direct et au débrief nocturne',
+    activeFollowers: 2890,
+    steps: [
+      {
+        id: 'f2-s1',
+        timeLabel: '17h00 · La Tactique',
+        mediaType: 'YouTube',
+        source: 'YouTube · Wiloo / Analyse',
+        title: 'Les 3 clés tactiques du choc européen au Parc des Princes',
+        summary: 'Analyse des couloirs et du pressing haut attendu dès le premier quart d’heure.',
+        durationMinutes: 14,
+      },
+      {
+        id: 'f2-s2',
+        timeLabel: '20h15 · L’Avant-match',
+        mediaType: 'TV/Replay',
+        source: 'Canal+ Sport',
+        title: 'Compositions officielles et duplex depuis le bord de pelouse',
+        summary: 'Les choix surprises de dernière minute au milieu de terrain.',
+        durationMinutes: 25,
+      },
+      {
+        id: 'f2-s3',
+        timeLabel: '23h05 · Le Débrief Audio',
+        mediaType: 'Podcasts',
+        source: 'After Foot · Podcast',
+        title: 'Le grand débrief à chaud : Notes des joueurs et tournant du match',
+        summary: 'Analyse sans langue de bois dès le coup de sifflet final.',
+        durationMinutes: 30,
+      },
+    ],
+  },
+  {
+    id: 'fil-3',
+    title: 'Renouveau du Cinéma de Genre & d’Animation Français',
+    category: 'Cinéma',
+    subtitle: 'Rencontres en salle, coulisses de fabrication et courts-métrages restaurés',
+    activeFollowers: 960,
+    steps: [
+      {
+        id: 'f3-s1',
+        timeLabel: 'Hier · Critique Presse',
+        mediaType: 'Presse',
+        source: 'Cahiers / Le Monde Culture',
+        title: 'Comment une nouvelle génération de cinéastes français réinvente le polar et la SF',
+        summary: 'Portrait croisé de quatre réalisatrices et réalisateurs primés cette année.',
+        durationMinutes: 8,
+      },
+      {
+        id: 'f3-s2',
+        timeLabel: 'Aujourd’hui · Replay Salle',
+        mediaType: 'TV/Replay',
+        source: 'Arte.tv · Cinéma L’Écran',
+        title: 'Débat en salle : Pourquoi le thriller psychologique français séduit le monde',
+        summary: 'Échange passionnant avec l’équipe du film sur la pellicule 35mm et le son.',
+        durationMinutes: 25,
+      },
+      {
+        id: 'f3-s3',
+        timeLabel: 'Ce soir · Table ronde Live',
+        mediaType: 'YouTube',
+        source: 'YouTube Live · CNC',
+        title: 'L’IA générative et l’artisanat dans le cinéma d’animation européen',
+        summary: 'Les studios indépendants montrent leurs carnets de croquis et leurs outils 2D/3D.',
+        durationMinutes: 45,
+      },
+    ],
+  },
+];
+
 export const INITIAL_TRUST_CIRCLE: TrustCircleMember[] = [
   {
     id: 'circle-1',
     name: 'Camille Vance',
     handle: '@camille_cine',
-    role: 'Critique' as unknown as 'Créateur',
+    role: 'Créateur',
     specialty: 'Cinéma',
     avatarInitials: 'CV',
     inCircle: true,
@@ -142,7 +380,7 @@ export const TASTE_TWINS_PROFILES: TasteTwinProfile[] = [
     id: 'twin-3',
     codename: 'Jumeau #879 · « Veilleur Audio »',
     matchPercent: 91,
-    sharedCategories: ['Actualités', 'Podcasts' as unknown as InterestCategory, 'Tech/IA'],
+    sharedCategories: ['Actualités', 'Culture', 'Tech/IA'],
     topPlatform: 'Podcasts',
     favoriteGemId: 'item-4',
     activeAgo: 'En ligne il y a 19 min',
@@ -159,7 +397,7 @@ export const TASTE_TWINS_PROFILES: TasteTwinProfile[] = [
 ];
 
 export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
-  // --- 4 RADAR DE BUZZ ITEMS (with generated editorial images) ---
+  // --- 4 RADAR DE BUZZ ITEMS ---
   {
     id: 'item-1',
     title: 'Keynote Européenne : Les modèles IA open-weight qui tournent en local',
@@ -168,7 +406,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creatorId: 'circle-2',
     format: 'YouTube',
     category: 'Tech/IA',
-    durationMinutes: 15,
+    durationMinutes: 45,
     urgency: 'live',
     liveViewers: 14820,
     mood: 'learn',
@@ -178,7 +416,21 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     summary:
       'Démonstration en direct des nouveaux modèles multimodaux exécutés directement sur smartphone sans connexion cloud, suivie des questions des développeurs.',
     keyTakeaway: 'Latence divisée par 4 sur puces mobiles et confidentialité totale des données locales.',
-    publishedAt: 'En direct depuis 18 min',
+    threeBulletPoints: [
+      'Exécution 100 % hors-ligne d’un modèle 7B quantifié sur smartphone standard à 48 tokens/seconde.',
+      'Nouvelle licence open-weight européenne garantissant la transparence du jeu d’entraînement.',
+      'Démonstration live d’un assistant vocal local traduisant et résumant des réunions sans serveur.',
+    ],
+    highlightMoment: {
+      timestamp: '28:40',
+      seconds: 1720,
+      label: 'Démo hors-ligne en mode avion sur scène',
+    },
+    isFree: true,
+    subscriptionId: 'free',
+    filRougeId: 'fil-1',
+    isMagazineEditionPick: true,
+    publishedAt: 'En direct depuis 32 min',
     imageUrl: '/src/assets/images/buzz_live_tech_keynote_1795205258158.jpg',
     isBuzzPeak: true,
     buzzReason: 'Pic de +340 % de partages chez vos Jumeaux Tech en 20 minutes',
@@ -192,7 +444,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creatorId: 'circle-1',
     format: 'TV/Replay',
     category: 'Cinéma',
-    durationMinutes: 25,
+    durationMinutes: 35,
     urgency: 'expiring',
     expiresInHours: 6,
     mood: 'learn',
@@ -202,6 +454,20 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     summary:
       'Rencontre exceptionnelle enregistrée après la projection de "Le Dernier Souffle". Analyse de la mise en scène, de la photographie 35mm et du montage sonore.',
     keyTakeaway: 'Disponible en replay gratuit jusqu’à ce soir minuit avant passage en VOD.',
+    threeBulletPoints: [
+      'Pourquoi le tournage en pellicule 35mm redonne une tension organique aux scènes nocturnes.',
+      'Le travail du silence et des basses fréquences expliqué par la cheffe monteuse son.',
+      'Comment les festivals internationaux financent désormais le polar d’auteur français.',
+    ],
+    highlightMoment: {
+      timestamp: '19:15',
+      seconds: 1155,
+      label: 'Décryptage du plan-séquence final sans musique',
+    },
+    isFree: true,
+    subscriptionId: 'free',
+    filRougeId: 'fil-3',
+    isMagazineEditionPick: true,
     publishedAt: 'Expire dans 6h',
     imageUrl: '/src/assets/images/buzz_cinema_festival_1795205258648.jpg',
     isBuzzPeak: true,
@@ -216,7 +482,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creatorId: 'circle-7',
     format: 'Streaming',
     category: 'Gaming',
-    durationMinutes: 30,
+    durationMinutes: 40,
     urgency: 'live',
     liveViewers: 68400,
     mood: 'background',
@@ -226,6 +492,18 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     summary:
       'Égalité 2-2 dans une ambiance électrique à Bercy. La dernière manche vient de commencer avec une composition surprise jamais jouée cette saison.',
     keyTakeaway: 'Dernière manche décisive de la saison européenne.',
+    threeBulletPoints: [
+      'Égalité parfaite 2-2 après une quatrième manche renversée à la 44e minute.',
+      'Sélection d’un champion surprise au mid jamais vu en compétition cette année.',
+      'Plus de 15 000 spectateurs sur place à Paris et 68 000 sur le flux francophone.',
+    ],
+    highlightMoment: {
+      timestamp: '31:05',
+      seconds: 1865,
+      label: 'Le vol du Baron Nashor qui relance toute la finale',
+    },
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'En direct · Manche 5/5',
     imageUrl: '/src/assets/images/buzz_esport_arena_1795205258952.jpg',
     isBuzzPeak: true,
@@ -240,7 +518,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creatorId: 'circle-3',
     format: 'Podcasts',
     category: 'Culture',
-    durationMinutes: 28,
+    durationMinutes: 32,
     urgency: 'anytime',
     mood: 'serious',
     twinMatchPercent: 96,
@@ -249,6 +527,19 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     summary:
       'Pendant six mois, 1 200 habitants du Vercors ont coupé leurs notifications pour animer un studio radio ouvert 18h par jour au cœur de la boulangerie.',
     keyTakeaway: 'Un documentaire sonore bouleversant d’humanité et d’humour.',
+    threeBulletPoints: [
+      'Un studio de radio libre installé entre le fournil et le café de la place centrale.',
+      'Des adolescents du village qui animent l’émission de 19h avec les anciens agriculteurs.',
+      'Une baisse mesurée de 65 % du temps d’écran individuel remplacée par des débats en direct.',
+    ],
+    highlightMoment: {
+      timestamp: '14:50',
+      seconds: 890,
+      label: 'Le débat hilarant entre le boulanger et la maire en direct à 6h du matin',
+    },
+    isFree: true,
+    subscriptionId: 'free',
+    isMagazineEditionPick: true,
     publishedAt: 'Publié ce matin à 07h00',
     imageUrl: '/src/assets/images/buzz_podcast_studio_1795205258340.jpg',
     isBuzzPeak: true,
@@ -256,7 +547,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     actionLabel: 'Écouter l’épisode',
   },
 
-  // --- 24 ADDITIONAL RICH FRENCH ITEMS ACROSS ALL FORMATS, MOODS, DURATIONS & URGENCIES ---
+  // --- ITEMS 5 TO 36 (Rich French Dataset across all formats, hidden gems, subscriptions, spoilers, highlights) ---
   {
     id: 'item-5',
     title: 'Le Journal Presque Sérieux : Spécial réunions qui auraient pu être un e-mail',
@@ -273,6 +564,13 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-4', 'circle-2'],
     summary:
       'Cinq minutes de satire chirurgicale sur le jargon des slides PowerPoint, les "points synchro" du vendredi 17h45 et l’art de hocher la tête en visio.',
+    threeBulletPoints: [
+      'Le dictionnaire de survie pour traduire "on se fait un point rapide" en langage réel.',
+      'L’imitation parfaite du partage d’écran qui met quatre minutes à fonctionner.',
+      'Idéal pour décompresser en exactement 5 minutes chrono.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 2h',
   },
   {
@@ -292,6 +590,14 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-5'],
     summary:
       'Version condensée de 15 minutes avec les premières cartes 3D de la matière noire commentées par les astrophysiciens de l’Institut d’Astrophysique de Paris.',
+    threeBulletPoints: [
+      'Images inédites en ultra-haute définition de 100 000 galaxies capturées en une seule pose.',
+      'Explication visuelle limpide de l’effet de lentille gravitationnelle.',
+      'Dernières heures en replay gratuit sur Arte.tv.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
+    isMagazineEditionPick: true,
     publishedAt: 'Expire dans 9h',
   },
   {
@@ -310,6 +616,13 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-1'],
     summary:
       'Décryptage plan par plan des références picturales, du choix des focales courtes et de la bande originale composée au synthétiseur analogique.',
+    threeBulletPoints: [
+      'Comparaison directe entre trois plans du teaser et des tableaux de Hopper et Hammershøi.',
+      'Révélation du compositeur électro français qui signe la bande originale.',
+      'Lecture rapide en 5 minutes avec extraits image par image.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 1h',
   },
   {
@@ -328,6 +641,15 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-3'],
     summary:
       'De Séville à Lyon, reportage infographique sur les réseaux de froid géothermique, la réouverture des rivières souterraines et l’architecture bioclimatique.',
+    threeBulletPoints: [
+      'Le système de canalisations d’eau souterraine qui abaisse la température de 6 °C à Séville.',
+      'Cartographie interactive de 15 villes françaises en pleine transformation végétale.',
+      'Chiffres clés sur les économies d’électricité réalisées dès le premier été.',
+    ],
+    isFree: false,
+    subscriptionId: 'presse_abo',
+    subscriptionLabel: 'Abonnés Presse',
+    isMagazineEditionPick: true,
     publishedAt: 'Ce matin',
   },
   {
@@ -338,7 +660,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creatorId: 'circle-8',
     format: 'Podcasts',
     category: 'Musique',
-    durationMinutes: 30,
+    durationMinutes: 45,
     urgency: 'live',
     liveViewers: 4290,
     mood: 'background',
@@ -347,11 +669,23 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-8'],
     summary:
       'Performance quadriphonique en direct de la Maison de la Radio. Idéal en fond sonore immersif pour travailler, coder ou lire sans interruption publicitaire.',
+    threeBulletPoints: [
+      'Mix continu sans voix ni coupure publicitaire enregistré sur synthétiseurs analogiques.',
+      'Prise de son binaurale spatialisée signée par les ingénieurs du son de Radio France.',
+      'Parfait en bruit de fond créatif ou relaxant.',
+    ],
+    highlightMoment: {
+      timestamp: '22:10',
+      seconds: 1330,
+      label: 'Improvisation au Rhodes électrique et arpégiateur modulaire',
+    },
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'En direct maintenant',
   },
   {
     id: 'item-10',
-    title: 'Palette Tactique : Comment le faux neuf a fait basculer le quart de finale européen',
+    title: 'Palette Tactique : Comment le faux neuf a fait basculer PSG — Bayern Munich',
     source: 'Canal+ Sport · Replay',
     creator: 'Antoine Garnier',
     creatorId: 'circle-6',
@@ -365,14 +699,23 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     twinCount: 2,
     recommendedByCircleIds: ['circle-6'],
     summary:
-      'Analyse vidéo image par image des déplacements sans ballon et des lignes de passe cassées en seconde période.',
+      'Analyse vidéo image par image des déplacements sans ballon et des lignes de passe cassées en seconde période lors du choc européen.',
+    threeBulletPoints: [
+      'Visualisation 3D des espaces créés entre la défense centrale et les milieux.',
+      'Statistiques de pressing haut comparées entre la 1re et la 2e mi-temps.',
+      'Condensé tactique de 10 minutes sans temps mort.',
+    ],
+    isFree: false,
+    subscriptionId: 'canal',
+    subscriptionLabel: 'Canal+',
+    filRougeId: 'fil-2',
     publishedAt: 'Expire dans 11h',
   },
   {
     id: 'item-11',
     title: 'Bref.2 — L’épisode coulisses : Comment tourner un plan-séquence de 4 minutes avec 40 figurants',
     source: 'YouTube · Making-Of',
-    creator: 'Kyan & Navo',
+    creator: 'Kyan Khojandi & Navo',
     format: 'YouTube',
     category: 'Humour',
     durationMinutes: 15,
@@ -383,6 +726,14 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-4', 'circle-1'],
     summary:
       'Les ratés hilarants, la mécanique de précision du montage ultra-rapide et les secrets d’écriture dévoilés par toute l’équipe technique.',
+    threeBulletPoints: [
+      'Le dispositif caché permettant de changer 3 décors autour de l’acteur en 8 secondes.',
+      'Le bêtisier inédit des prises interrompues par des fous rires.',
+      'Une leçon de mise en scène comique accessible et passionnante.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
+    surpriseGuestId: 'guest-4',
     publishedAt: 'Hier soir',
   },
   {
@@ -401,6 +752,19 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-1'],
     summary:
       'Dernières heures pour voir ce chef-d’œuvre de la science-fiction photographique française accompagné d’un entretien rare de 1963.',
+    threeBulletPoints: [
+      'Restauration 4K supervisée à partir des négatifs originaux noir et blanc.',
+      'Inclut un entretien sonore rarissime sur la mémoire et le voyage dans le temps.',
+      'Quitte le catalogue ce soir dans 4 heures.',
+    ],
+    highlightMoment: {
+      timestamp: '18:30',
+      seconds: 1110,
+      label: 'L’unique battement de paupières en mouvement du film',
+    },
+    isFree: false,
+    subscriptionId: 'mubi',
+    subscriptionLabel: 'MUBI',
     publishedAt: 'Expire dans 4h',
   },
   {
@@ -419,12 +783,20 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-2'],
     summary:
       'Un condensé clair et sans jargon : puces photoniques européennes, nouvelles normes sur l’entraînement des modèles et 3 outils open-source à tester.',
+    threeBulletPoints: [
+      'Percée européenne sur les interconnexions optiques réduisant de 40 % la chauffe des serveurs.',
+      'Calendrier clair des nouvelles obligations de transparence algorithmique.',
+      'Trois projets open-source français à essayer ce week-end.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
+    filRougeId: 'fil-1',
     publishedAt: 'Il y a 3h',
   },
   {
     id: 'item-14',
-    title: 'Essai vidéo : Pourquoi l’architecture sonore de "Hollow Knight: Silksong" fascine les compositeurs',
-    source: 'YouTube · Game Score',
+    title: 'Essai vidéo indé : Pourquoi l’architecture sonore de "Hollow Knight: Silksong" fascine les luthiers',
+    source: 'YouTube · L’Atelier Harmonique',
     creator: 'Chloé Dubreuil',
     creatorId: 'circle-7',
     format: 'YouTube',
@@ -432,11 +804,20 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     durationMinutes: 20,
     urgency: 'anytime',
     mood: 'background',
-    twinMatchPercent: 89,
-    twinCount: 3,
+    twinMatchPercent: 96,
+    twinCount: 6,
     recommendedByCircleIds: ['circle-7', 'circle-8'],
     summary:
-      'Analyse musicale au piano et au violoncelle des thèmes dynamiques qui s’adaptent au rythme cardiaque du combat.',
+      'Un luthier et une compositrice décortiquent au violoncelle baroque les thèmes dynamiques qui s’adaptent au rythme cardiaque du joueur.',
+    threeBulletPoints: [
+      'Pépite indépendante à seulement 2 800 vues mais notée 96 % par vos Jumeaux.',
+      'Démonstration acoustique en studio avec instruments à cordes anciens.',
+      'Explique comment le jeu modifie ses accords sans transition audible.',
+    ],
+    isHiddenGem: true,
+    viewsLabel: 'Pépite cachée · 2 800 vues',
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 2 jours',
   },
   {
@@ -456,6 +837,13 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-5', 'circle-2'],
     summary:
       'Décompte final H-10 minutes en direct du centre spatial guyanais avec télémétrie commentée par les ingénieurs de vol.',
+    threeBulletPoints: [
+      'Caméras embarquées en direct sur le deuxième étage cryogénique.',
+      'Commentaires scientifiques clairs sans jargon par l’équipe du CNES.',
+      'Mise en orbite d’un satellite européen d’observation océanique.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'En direct · Décollage imminent',
   },
   {
@@ -473,6 +861,13 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-4'],
     summary:
       'De Michel Blanc à Bacri, 45 anecdotes de tournage vérifiées avec les extraits vidéo correspondants minutés.',
+    threeBulletPoints: [
+      '45 scènes cultes qui n’étaient pas écrites dans le scénario original.',
+      'Liens directs minutés vers chaque extrait vidéo.',
+      'Lecture rapide et bonne humeur immédiate.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 5h',
   },
   {
@@ -490,6 +885,18 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-3'],
     summary:
       'Une traversée érudite et limpide de Marseille, Palerme et Alexandrie à travers les siècles d’échanges maritimes et architecturaux.',
+    threeBulletPoints: [
+      'Comment les ports méditerranéens ont inventé le cosmopolitisme urbain.',
+      'Archives sonores de Marseille dans les années 1930.',
+      'Un récit vivant qui s’écoute comme un roman d’aventures.',
+    ],
+    highlightMoment: {
+      timestamp: '26:15',
+      seconds: 1575,
+      label: 'L’histoire méconnue de la bibliothèque souterraine de Palerme',
+    },
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Hier',
   },
   {
@@ -509,6 +916,18 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-8', 'circle-1'],
     summary:
       'Captation acoustique exceptionnelle dans l’Orangerie du Château de Versailles. Dernier jour de disponibilité du replay intégral.',
+    threeBulletPoints: [
+      'Réorchestration symphonique complète de l’album culte de la French Touch.',
+      'Prise de son haute fidélité et réalisation cinématographique en plan-séquence.',
+      'Replay gratuit qui expire dans 18 heures.',
+    ],
+    highlightMoment: {
+      timestamp: '16:40',
+      seconds: 1000,
+      label: 'Version orchestrale suspendue de "La Femme d’Argent"',
+    },
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Expire dans 18h',
   },
   {
@@ -527,6 +946,13 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-6'],
     summary:
       'Ralentis à 1 000 images/seconde sur les effets de service des frères Lebrun et la révolution de la préparation mentale.',
+    threeBulletPoints: [
+      'Décomposition biomécanique de la prise porte-plume à ultra-haute vitesse.',
+      'Le rôle clé du centre d’entraînement de Montpellier.',
+      'Format nerveux et visuel de 5 minutes.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 6h',
   },
   {
@@ -545,6 +971,14 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-3', 'circle-2'],
     summary:
       'Trois mois d’investigation dans les laboratoires de Grenoble et Dunkerque sur la souveraineté énergétique et les nouveaux procédés sans cobalt.',
+    threeBulletPoints: [
+      'Accès exclusif aux lignes pilotes de recyclage hydrométallurgique à 98 %.',
+      'Les batailles de brevets entre industriels européens et asiatiques.',
+      'Synthèse claire des enjeux écologiques réels.',
+    ],
+    isFree: false,
+    subscriptionId: 'presse_abo',
+    subscriptionLabel: 'Mediapart Abonnés',
     publishedAt: 'Ce matin',
   },
   {
@@ -563,6 +997,13 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-4', 'circle-2'],
     summary:
       'Quand votre frigo refuse d’ouvrir la porte du bac à fromage tant que vous n’avez pas validé vos objectifs sportifs de la semaine.',
+    threeBulletPoints: [
+      'Un duo comique irrésistible entre l’utilisateur affamé à 23h et la voix IA du frigo.',
+      'La scène du grille-pain syndiqué qui se met en grève solidaire.',
+      'À partager en soirée pour rire immédiatement.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 4h',
   },
   {
@@ -573,7 +1014,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creatorId: 'circle-7',
     format: 'Streaming',
     category: 'Gaming',
-    durationMinutes: 25,
+    durationMinutes: 35,
     urgency: 'live',
     liveViewers: 19300,
     mood: 'background',
@@ -582,6 +1023,18 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-7'],
     summary:
       'Une performance de mémorisation acoustique hallucinante où le joueur se repère uniquement grâce aux échos des pas et au vent.',
+    threeBulletPoints: [
+      'Repérage spatial à l’oreille grâce à la réverbération des falaises et au bruit des herbes.',
+      'Commentaires pédagogiques en direct sur les astuces de physique du moteur.',
+      'Événement caritatif francophone en direct.',
+    ],
+    highlightMoment: {
+      timestamp: '21:15',
+      seconds: 1275,
+      label: 'Combat contre Ganon réussi sans aucun repère visuel',
+    },
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'En direct maintenant',
   },
   {
@@ -594,11 +1047,21 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     durationMinutes: 10,
     urgency: 'anytime',
     mood: 'background',
-    twinMatchPercent: 90,
-    twinCount: 3,
+    twinMatchPercent: 95,
+    twinCount: 5,
     recommendedByCircleIds: ['circle-1'],
     summary:
       'Chronique feutrée de ces librairies indépendantes qui ouvrent leurs portes jusqu’à minuit pour des lectures à voix haute.',
+    threeBulletPoints: [
+      'Reportage atmosphérique dans quatre librairies nocturnes de quartier.',
+      'La sélection des 6 romans courts les plus conseillés après 22h.',
+      'Pépite littéraire plébiscitée par vos Jumeaux Culture.',
+    ],
+    isHiddenGem: true,
+    viewsLabel: 'Pépite cachée · 1 450 lecteurs',
+    isFree: false,
+    subscriptionId: 'presse_abo',
+    subscriptionLabel: 'Les Jours',
     publishedAt: 'Hier',
   },
   {
@@ -608,7 +1071,7 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     creator: 'Slate FR',
     format: 'Podcasts',
     category: 'Culture',
-    durationMinutes: 20,
+    durationMinutes: 34,
     urgency: 'anytime',
     mood: 'background',
     twinMatchPercent: 94,
@@ -616,6 +1079,18 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-1', 'circle-4'],
     summary:
       'Une enquête intime partie de 24 clichés argentiques développés vingt-cinq ans plus tard jusqu’à des retrouvailles à Lisbonne.',
+    threeBulletPoints: [
+      'Un récit vrai construit comme une enquête policière bienveillante.',
+      'Le moment bouleversant où la famille reconnaît son été 1998 sur les tirages.',
+      'Idéal pour un trajet de 30 minutes.',
+    ],
+    highlightMoment: {
+      timestamp: '24:10',
+      seconds: 1450,
+      label: 'L’appel téléphonique des retrouvailles à Lisbonne',
+    },
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 1 jour',
   },
   {
@@ -634,6 +1109,19 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-3', 'circle-2'],
     summary:
       'Philosophes, ingénieurs et sociologues croisent le fer sur la reprise en main de notre attention face aux flux infinis.',
+    threeBulletPoints: [
+      'La différence entre recommandation choisie et captation compulsive de l’attention.',
+      'Propositions concrètes pour des algorithmes transparents et réglables par l’usager.',
+      'Un échange vif mais nuancé de 30 minutes.',
+    ],
+    highlightMoment: {
+      timestamp: '17:45',
+      seconds: 1065,
+      label: 'L’expérience du bouton "Hors-bulle" testée auprès de 500 lycéens',
+    },
+    isFree: true,
+    subscriptionId: 'free',
+    filRougeId: 'fil-1',
     publishedAt: 'Expire dans 15h',
   },
   {
@@ -652,29 +1140,50 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-5'],
     summary:
       'Visualisation microscopique des échanges de carbone et de signaux bio-électriques entre les racines des chênes centenaires.',
+    threeBulletPoints: [
+      'Imagerie par fluorescence montrant le transport réel des nutriments en temps réel.',
+      'Démystification scientifique de ce qui est prouvé vs exagéré sur le "Wood Wide Web".',
+      'Vulgarisation limpide en 10 minutes.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Il y a 8h',
   },
   {
     id: 'item-27',
-    title: 'Vinyle & Café : 5 albums jazz-funk japonais des années 80 réédités cette semaine',
-    source: 'Threads · Fil Audio',
-    creator: 'Hugo Delacroix',
-    creatorId: 'circle-8',
-    format: 'Réseaux sociaux',
+    title: 'Podcast Indé « Contrepoint & Bach » : Alexandre Astier décortique l’écriture musicale au cinéma',
+    source: 'Podcast Indépendant · Contrepoint Audio',
+    creator: 'Lucas & Alexandre Astier',
+    format: 'Podcasts',
     category: 'Musique',
-    durationMinutes: 5,
+    durationMinutes: 40,
     urgency: 'anytime',
-    mood: 'background',
-    twinMatchPercent: 89,
-    twinCount: 3,
-    recommendedByCircleIds: ['circle-8'],
+    mood: 'learn',
+    twinMatchPercent: 98,
+    twinCount: 7,
+    recommendedByCircleIds: ['circle-1', 'circle-8'],
     summary:
-      'Sélection commentée avec extraits d’écoute de 30 secondes : Masayoshi Takanaka, Casiopea et Himiko Kikuchi.',
+      'Invité surprise d’un petit podcast indépendant de musicologie, Alexandre Astier joue au clavecin et au piano ses thèmes et explique le contrepoint.',
+    threeBulletPoints: [
+      'Pépite cachée absolue : seulement 2 100 écoutes mais 98 % d’approbation chez vos Jumeaux.',
+      'Exemples joués en direct au piano sur la construction d’un thème héroïque.',
+      'Accessible même sans aucune formation en solfège.',
+    ],
+    highlightMoment: {
+      timestamp: '34:10',
+      seconds: 2050,
+      label: 'Pourquoi il écrit la partition symphonique avant le montage image',
+    },
+    isHiddenGem: true,
+    viewsLabel: 'Pépite cachée · 2 100 écoutes',
+    isFree: true,
+    subscriptionId: 'free',
+    surpriseGuestId: 'guest-1',
     publishedAt: 'Il y a 3h',
   },
   {
     id: 'item-28',
-    title: 'Documentaire Sport : Dans le vestiaire de l’équipe de France de Rugby avant le Tournoi',
+    title: 'Documentaire Sport : Dans le vestiaire du XV de France avant le Tournoi',
     source: 'France.tv · Replay Exclusif',
     creator: 'Antoine Garnier',
     creatorId: 'circle-6',
@@ -689,7 +1198,249 @@ export const INITIAL_RADAR_ITEMS: RadarContentItem[] = [
     recommendedByCircleIds: ['circle-6'],
     summary:
       'Immersion sans filtre au centre de Marcoussis : causeries, capteurs GPS et gestion de la pression à huis clos.',
+    threeBulletPoints: [
+      'Micros portés par les entraîneurs pendant les séances tactiques sous la pluie.',
+      'Le travail invisible des analystes vidéo à la mi-temps.',
+      'Replay gratuit qui disparaît dans 8 heures.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
     publishedAt: 'Expire dans 8h',
+  },
+  {
+    id: 'item-29',
+    title: 'Série Événement : "Le Bureau des Ombres" — Saison 2 Épisode 1 (Analyse & Critique)',
+    source: 'Canal+ · Création Originale',
+    creator: 'Camille Vance',
+    creatorId: 'circle-1',
+    format: 'Streaming',
+    category: 'Cinéma',
+    durationMinutes: 50,
+    urgency: 'anytime',
+    mood: 'serious',
+    twinMatchPercent: 96,
+    twinCount: 6,
+    recommendedByCircleIds: ['circle-1', 'circle-3'],
+    summary:
+      'Le retour très attendu de la série d’espionnage française : révélations sur le double agent à Tallinn et dénouement du cliffhanger de la saison 1.',
+    threeBulletPoints: [
+      'Mise en scène tendue tournée en décors naturels en Estonie.',
+      'Attention spoilers si vous n’avez pas encore vu le premier épisode.',
+      'Disponible en 4K sur Canal+.',
+    ],
+    highlightMoment: {
+      timestamp: '38:20',
+      seconds: 2300,
+      label: 'La confrontation silencieuse dans le train de nuit',
+    },
+    isFree: false,
+    subscriptionId: 'canal',
+    subscriptionLabel: 'Canal+',
+    publishedAt: 'Sorti aujourd’hui',
+  },
+  {
+    id: 'item-30',
+    title: 'Club de lecture SF : Victor Wembanyama parle pendant 35 min de ses romans de science-fiction favoris',
+    source: 'YouTube · La Bibliothèque Imaginaire',
+    creator: 'Clara & Victor Wembanyama',
+    format: 'YouTube',
+    category: 'Culture',
+    durationMinutes: 35,
+    urgency: 'anytime',
+    mood: 'background',
+    twinMatchPercent: 95,
+    twinCount: 5,
+    recommendedByCircleIds: ['circle-6', 'circle-1'],
+    summary:
+      'Apparition surprise sur une petite chaîne littéraire francophone (3 900 vues) : Wemby partage sa passion pour les univers de Brandon Sanderson et Liu Cixin.',
+    threeBulletPoints: [
+      'Invité surprise totalement inattendu sur une chaîne de critique littéraire.',
+      'Aucun discours sportif formaté : 35 minutes de pure passion lecture et imaginaire.',
+      'Seulement 3 900 vues mais déjà culte chez vos Jumeaux.',
+    ],
+    highlightMoment: {
+      timestamp: '14:20',
+      seconds: 860,
+      label: 'Son classement personnel des 3 meilleurs cycles de SF',
+    },
+    isHiddenGem: true,
+    viewsLabel: 'Pépite cachée · 3 900 vues',
+    isFree: true,
+    subscriptionId: 'free',
+    surpriseGuestId: 'guest-2',
+    publishedAt: 'Il y a 5h',
+  },
+  {
+    id: 'item-31',
+    title: 'Live Twitch Sciences : Le Prix Nobel Alain Aspect explique la physique quantique sur Factorio',
+    source: 'Twitch · Sciences & Pixels',
+    creator: 'Alain Aspect & Maxime',
+    format: 'Streaming',
+    category: 'Sciences',
+    durationMinutes: 50,
+    urgency: 'anytime',
+    mood: 'learn',
+    twinMatchPercent: 97,
+    twinCount: 6,
+    recommendedByCircleIds: ['circle-5', 'circle-2'],
+    summary:
+      'Quand un Prix Nobel de physique français débarque sur un stream de jeu d’ingénierie pour expliquer les portes logiques quantiques avec humour.',
+    threeBulletPoints: [
+      'Vulgarisation exceptionnelle de l’intrication quantique à partir d’une usine virtuelle.',
+      'Réponses en direct aux questions pointues du chat Twitch.',
+      'Pépite cachée (4 400 vues) à ne manquer sous aucun prétexte.',
+    ],
+    highlightMoment: {
+      timestamp: '27:00',
+      seconds: 1620,
+      label: 'L’analogie géniale sur les photons intriqués',
+    },
+    isHiddenGem: true,
+    viewsLabel: 'Pépite cachée · 4 400 vues',
+    isFree: true,
+    subscriptionId: 'free',
+    surpriseGuestId: 'guest-3',
+    publishedAt: 'Hier soir',
+  },
+  {
+    id: 'item-32',
+    title: 'Documentaire Netflix : "Les Artisans du Son" — Dans les studios mythiques de la chanson française',
+    source: 'Netflix · Documentaire Culture',
+    creator: 'Hugo Delacroix',
+    creatorId: 'circle-8',
+    format: 'Streaming',
+    category: 'Musique',
+    durationMinutes: 45,
+    urgency: 'anytime',
+    mood: 'learn',
+    twinMatchPercent: 91,
+    twinCount: 4,
+    recommendedByCircleIds: ['circle-8', 'circle-1'],
+    summary:
+      'Du Château d’Hérouville aux studios Ferber, rencontre avec les ingénieurs du son qui ont façonné les albums légendaires de ces cinquante dernières années.',
+    threeBulletPoints: [
+      'Ouverture des bandes multipistes originales de Serge Gainsbourg et Daft Punk.',
+      'Idéal pour une soirée documentaire à deux ou entre amis.',
+      'Inclus dans l’abonnement Netflix.',
+    ],
+    highlightMoment: {
+      timestamp: '23:10',
+      seconds: 1390,
+      label: 'Écoute piste par piste d’un enregistrement analogique de 1977',
+    },
+    isFree: false,
+    subscriptionId: 'netflix',
+    subscriptionLabel: 'Netflix',
+    publishedAt: 'Cette semaine',
+  },
+  {
+    id: 'item-33',
+    title: 'Soirée Cinéma Prime : "Anatomie d’une Nuit" — Comédie dramatique primée à Cannes',
+    source: 'Prime Video · Cinéma',
+    creator: 'Camille Vance',
+    creatorId: 'circle-1',
+    format: 'Streaming',
+    category: 'Cinéma',
+    durationMinutes: 60,
+    urgency: 'anytime',
+    mood: 'laugh',
+    twinMatchPercent: 94,
+    twinCount: 5,
+    recommendedByCircleIds: ['circle-1', 'circle-4'],
+    summary:
+      'Une nuit blanche rocambolesque dans les coulisses d’un théâtre parisien où acteurs, techniciens et spectateurs échangent leurs rôles.',
+    threeBulletPoints: [
+      'Le film qui met tout le monde d’accord en Mode Soirée à plusieurs (humour + cinéma).',
+      'Dialogues ciselés et rythme effréné sans temps mort.',
+      'Disponible sur Prime Video.',
+    ],
+    isFree: false,
+    subscriptionId: 'prime',
+    subscriptionLabel: 'Prime Video',
+    publishedAt: 'Nouveauté catalogue',
+  },
+  {
+    id: 'item-34',
+    title: 'Atelier Micro-Podcast : Les artisans boulangers qui cultivent leurs blés anciens en Île-de-France',
+    source: 'Podcast Indé · Terres Vives',
+    creator: 'Léa Kerdrel',
+    creatorId: 'circle-3',
+    format: 'Podcasts',
+    category: 'Culture',
+    durationMinutes: 15,
+    urgency: 'anytime',
+    mood: 'background',
+    twinMatchPercent: 93,
+    twinCount: 4,
+    recommendedByCircleIds: ['circle-3'],
+    summary:
+      'Immersion sonore au lever du jour chez trois paysans-boulangers qui redonnent vie à des semences oubliées depuis un siècle.',
+    threeBulletPoints: [
+      'Pépite cachée indépendante (1 850 écoutes) au son binaural ultra-soigné.',
+      'Un récit apaisant et instructif de 15 minutes.',
+      'Gratuit et sans publicité.',
+    ],
+    isHiddenGem: true,
+    viewsLabel: 'Pépite cachée · 1 850 écoutes',
+    isFree: true,
+    subscriptionId: 'free',
+    publishedAt: 'Il y a 12h',
+  },
+  {
+    id: 'item-35',
+    title: 'NBA Night Replay : Le duel au sommet des Spurs à San Antonio (Résumé long sans coupure)',
+    source: 'beIN Sports · Replay NBA',
+    creator: 'Antoine Garnier',
+    creatorId: 'circle-6',
+    format: 'TV/Replay',
+    category: 'Sport',
+    durationMinutes: 30,
+    urgency: 'expiring',
+    expiresInHours: 10,
+    mood: 'background',
+    twinMatchPercent: 90,
+    twinCount: 3,
+    recommendedByCircleIds: ['circle-6'],
+    summary:
+      'Condensé de 30 minutes des actions clés et du quatrième quart-temps sous haute tension avec commentaires français d’origine.',
+    threeBulletPoints: [
+      'Montage condensé de 30 minutes conservant toute la dramaturgie du dernier quart-temps.',
+      'Performance défensive historique dans les trois dernières minutes.',
+      'Protégeable en 1 clic avec le Bouclier Anti-Spoiler.',
+    ],
+    highlightMoment: {
+      timestamp: '24:50',
+      seconds: 1490,
+      label: 'Le contre décisif suivi du tir à 3 points à 18 secondes de la fin',
+    },
+    isFree: false,
+    subscriptionId: 'bein',
+    subscriptionLabel: 'beIN Sports',
+    publishedAt: 'Expire dans 10h',
+  },
+  {
+    id: 'item-36',
+    title: 'Mercato rumeurs : Le feuilleton interminable des transferts d’été heure par heure',
+    source: 'Réseaux sociaux · Fil Foot',
+    creator: 'Actu Transferts',
+    format: 'Réseaux sociaux',
+    category: 'Sport',
+    durationMinutes: 5,
+    urgency: 'anytime',
+    mood: 'background',
+    twinMatchPercent: 72,
+    twinCount: 1,
+    recommendedByCircleIds: [],
+    summary:
+      'Compilation des bruits de couloir et spéculations quotidiennes sur le mercato.',
+    threeBulletPoints: [
+      'Rumeurs non confirmées sur les prolongations de contrat.',
+      'Exemple type de contenu filtré automatiquement si vous activez le Mute "Mercato rumeurs".',
+      'Débloquable à tout moment dans Mon Espace.',
+    ],
+    isFree: true,
+    subscriptionId: 'free',
+    publishedAt: 'Il y a 1h',
   },
 ];
 
@@ -706,6 +1457,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 45,
     isLiveBroadcast: true,
     twinInterestCount: 18,
+    spoilerTag: 'IA Cinéma Animation',
   },
   {
     id: 'ag-2',
@@ -719,6 +1471,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 115,
     isLiveBroadcast: true,
     twinInterestCount: 34,
+    spoilerTag: 'PSG — Bayern Munich',
   },
   {
     id: 'ag-3',
@@ -732,6 +1485,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 52,
     isLiveBroadcast: true,
     twinInterestCount: 27,
+    spoilerTag: 'Anatomie Algorithme',
   },
   {
     id: 'ag-4',
@@ -745,6 +1499,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 60,
     isLiveBroadcast: true,
     twinInterestCount: 22,
+    spoilerTag: 'La Dernière Stand-up',
   },
   {
     id: 'ag-5',
@@ -758,6 +1513,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 50,
     isLiveBroadcast: false,
     twinInterestCount: 41,
+    spoilerTag: 'Le Bureau des Ombres',
   },
   {
     id: 'ag-6',
@@ -771,6 +1527,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 32,
     isLiveBroadcast: false,
     twinInterestCount: 19,
+    spoilerTag: 'Chaleur Humaine',
   },
   {
     id: 'ag-7',
@@ -784,6 +1541,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 40,
     isLiveBroadcast: true,
     twinInterestCount: 31,
+    spoilerTag: 'Occultation Saturne',
   },
   {
     id: 'ag-8',
@@ -797,6 +1555,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 75,
     isLiveBroadcast: true,
     twinInterestCount: 29,
+    spoilerTag: 'Hommage Sakamoto',
   },
   {
     id: 'ag-9',
@@ -810,6 +1569,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 60,
     isLiveBroadcast: true,
     twinInterestCount: 24,
+    spoilerTag: 'Showcase Indé Gaming',
   },
   {
     id: 'ag-10',
@@ -823,6 +1583,7 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 90,
     isLiveBroadcast: true,
     twinInterestCount: 36,
+    spoilerTag: 'Palmarès Clermont-Ferrand',
   },
   {
     id: 'ag-11',
@@ -836,5 +1597,6 @@ export const INITIAL_AGENDA_EVENTS: AgendaEvent[] = [
     durationMinutes: 65,
     isLiveBroadcast: true,
     twinInterestCount: 17,
+    spoilerTag: 'Débat OSINT',
   },
 ];

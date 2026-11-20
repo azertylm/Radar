@@ -2,23 +2,30 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bookmark,
   Calendar,
+  CheckCircle2,
   Compass,
   Headphones,
   Moon,
   Radio,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Sun,
 } from 'lucide-react';
 import { AgendaTab } from './components/AgendaTab';
+import { AlphabetteDoubleBar } from './components/AlphabetteDoubleBar';
 import { CatchupTab } from './components/CatchupTab';
 import { ContentDetailModal } from './components/ContentDetailModal';
+import { ExplorerTab } from './components/ExplorerTab';
 import { OnboardingModal } from './components/OnboardingModal';
 import { RadarHomeTab } from './components/RadarHomeTab';
 import { WatchlistProfileTab } from './components/WatchlistProfileTab';
 import {
   INITIAL_AGENDA_EVENTS,
+  INITIAL_MUTE_RULES,
   INITIAL_RADAR_ITEMS,
+  INITIAL_SPOILER_RULES,
+  INITIAL_SURPRISE_GUESTS,
   INITIAL_TRUST_CIRCLE,
 } from './data/mockRadarData';
 import {
@@ -27,34 +34,51 @@ import {
   FomoUrgency,
   InterestCategory,
   MoodFilter,
+  MuteDuration,
+  MuteRule,
   RadarContentItem,
+  SpoilerRule,
+  SubscriptionId,
+  SurpriseGuestProfile,
   TrustCircleMember,
 } from './types/radar';
 import { filterAndRankFeed } from './utils/radarEngine';
 
-type ActiveTab = 'radar' | 'catchup' | 'agenda' | 'watchlist';
+type ActiveTab = 'radar' | 'explorer' | 'catchup' | 'agenda' | 'watchlist';
 
-const STORAGE_KEY = 'radar_anti_fomo_state_v1';
+const STORAGE_KEY = 'radar_anti_fomo_state_v2';
 const THEME_STORAGE_KEY = 'radar_theme_mode_v1';
 
 interface StoredRadarState {
   hasCompletedOnboarding: boolean;
   interests: InterestCategory[];
   platforms: ContentFormat[];
+  ownedSubscriptions: SubscriptionId[];
+  onlyAccessibleNow: boolean;
+  disconnectMode: boolean;
   outOfBubblePercent: number;
   watchlistIds: string[];
   remindedEventIds: string[];
   trustCircle: TrustCircleMember[];
+  spoilerRules: SpoilerRule[];
+  muteRules: MuteRule[];
+  surpriseGuests: SurpriseGuestProfile[];
 }
 
 const DEFAULT_STATE: StoredRadarState = {
   hasCompletedOnboarding: false,
   interests: ['Tech/IA', 'Cinéma', 'Actualités', 'Humour', 'Culture'],
   platforms: ['TV/Replay', 'YouTube', 'Podcasts', 'Réseaux sociaux', 'Streaming', 'Presse'],
+  ownedSubscriptions: ['free', 'netflix', 'canal'],
+  onlyAccessibleNow: false,
+  disconnectMode: false,
   outOfBubblePercent: 15,
   watchlistIds: ['item-2', 'item-4', 'item-12'],
   remindedEventIds: ['ag-1'],
   trustCircle: INITIAL_TRUST_CIRCLE,
+  spoilerRules: INITIAL_SPOILER_RULES,
+  muteRules: INITIAL_MUTE_RULES,
+  surpriseGuests: INITIAL_SURPRISE_GUESTS,
 };
 
 export default function App() {
@@ -104,11 +128,22 @@ export default function App() {
     }
   }, [appState]);
 
-  // Navigation & Modal State
+  // Navigation, Modal & Toast State
   const [activeTab, setActiveTab] = useState<ActiveTab>('radar');
   const [items, setItems] = useState<RadarContentItem[]>(INITIAL_RADAR_ITEMS);
   const [selectedDetailItem, setSelectedDetailItem] = useState<RadarContentItem | null>(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+  };
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = window.setTimeout(() => setToastMessage(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [toastMessage]);
 
   // Feed Filter States
   const [sourceMode, setSourceMode] = useState<FeedSourceMode>('for_you');
@@ -121,7 +156,7 @@ export default function App() {
   const handleToggleInterest = (category: InterestCategory) => {
     setAppState((prev) => {
       const exists = prev.interests.includes(category);
-      if (exists && prev.interests.length <= 1) return prev; // keep at least 1
+      if (exists && prev.interests.length <= 1) return prev;
       const next = exists
         ? prev.interests.filter((c) => c !== category)
         : [...prev.interests, category];
@@ -140,12 +175,51 @@ export default function App() {
     });
   };
 
+  const handleToggleSubscription = (subId: SubscriptionId) => {
+    if (subId === 'free') return; // Gratuit is always owned
+    setAppState((prev) => {
+      const exists = prev.ownedSubscriptions.includes(subId);
+      const next = exists
+        ? prev.ownedSubscriptions.filter((id) => id !== subId)
+        : [...prev.ownedSubscriptions, subId];
+      return { ...prev, ownedSubscriptions: next };
+    });
+    showToast('Vos abonnements ont été mis à jour');
+  };
+
+  const handleToggleOnlyAccessibleNow = () => {
+    setAppState((prev) => {
+      const next = !prev.onlyAccessibleNow;
+      showToast(
+        next
+          ? 'Filtre « Accessible tout de suite » activé'
+          : 'Tous les contenus sont affichés'
+      );
+      return { ...prev, onlyAccessibleNow: next };
+    });
+  };
+
+  const handleToggleDisconnectMode = () => {
+    setAppState((prev) => {
+      const next = !prev.disconnectMode;
+      showToast(
+        next
+          ? 'Mode Déconnexion activé : Radar de Buzz mis en pause'
+          : 'Mode Déconnexion désactivé : retour au flux temps réel'
+      );
+      return { ...prev, disconnectMode: next };
+    });
+  };
+
   const handleToggleSaveWatchlist = (itemId: string) => {
     setAppState((prev) => {
       const exists = prev.watchlistIds.includes(itemId);
       const next = exists
         ? prev.watchlistIds.filter((id) => id !== itemId)
         : [itemId, ...prev.watchlistIds];
+      showToast(
+        exists ? 'Retiré de votre Watchlist' : 'Ajouté à votre Watchlist anti-oubli'
+      );
       return { ...prev, watchlistIds: next };
     });
   };
@@ -156,10 +230,168 @@ export default function App() {
       const next = exists
         ? prev.remindedEventIds.filter((id) => id !== eventId)
         : [...prev.remindedEventIds, eventId];
+      showToast(
+        exists ? 'Rappel annulé' : 'Rappel programmé 15 minutes avant le direct'
+      );
       return { ...prev, remindedEventIds: next };
     });
   };
 
+  // Module 17: Anti-Spoiler Handlers
+  const handleAddSpoilerRule = (keyword: string, category: InterestCategory) => {
+    setAppState((prev) => {
+      const exists = prev.spoilerRules.some(
+        (r) => r.keyword.toLowerCase().trim() === keyword.toLowerCase().trim()
+      );
+      if (exists) {
+        return {
+          ...prev,
+          spoilerRules: prev.spoilerRules.map((r) =>
+            r.keyword.toLowerCase().trim() === keyword.toLowerCase().trim()
+              ? { ...r, seen: false }
+              : r
+          ),
+        };
+      }
+      const newRule: SpoilerRule = {
+        id: `sp-${Date.now()}`,
+        keyword,
+        category,
+        seen: false,
+      };
+      return { ...prev, spoilerRules: [newRule, ...prev.spoilerRules] };
+    });
+    showToast(`Bouclier Anti-Spoiler activé pour « ${keyword} »`);
+  };
+
+  const handleToggleEventSpoiler = (spoilerTag: string, category: InterestCategory) => {
+    setAppState((prev) => {
+      const existing = prev.spoilerRules.find(
+        (r) => r.keyword.toLowerCase().trim() === spoilerTag.toLowerCase().trim()
+      );
+      if (existing) {
+        const nextSeen = !existing.seen;
+        showToast(
+          nextSeen
+            ? `Bouclier Anti-Spoiler désactivé pour « ${spoilerTag} »`
+            : `Bouclier Anti-Spoiler réactivé pour « ${spoilerTag} »`
+        );
+        return {
+          ...prev,
+          spoilerRules: prev.spoilerRules.map((r) =>
+            r.id === existing.id ? { ...r, seen: nextSeen } : r
+          ),
+        };
+      }
+      const newRule: SpoilerRule = {
+        id: `sp-${Date.now()}`,
+        keyword: spoilerTag,
+        category,
+        seen: false,
+      };
+      showToast(`Bouclier Anti-Spoiler activé pour « ${spoilerTag} »`);
+      return { ...prev, spoilerRules: [newRule, ...prev.spoilerRules] };
+    });
+  };
+
+  const handleToggleSpoilerSeen = (ruleId: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      spoilerRules: prev.spoilerRules.map((r) =>
+        r.id === ruleId ? { ...r, seen: !r.seen } : r
+      ),
+    }));
+    showToast('Statut du Bouclier Anti-Spoiler mis à jour');
+  };
+
+  const handleMarkSpoilerKeywordSeen = (keyword: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      spoilerRules: prev.spoilerRules.map((r) =>
+        r.keyword.toLowerCase().trim() === keyword.toLowerCase().trim()
+          ? { ...r, seen: true }
+          : r
+      ),
+    }));
+    showToast(`« ${keyword} » marqué comme Vu : contenus démasqués`);
+  };
+
+  const handleRemoveSpoilerRule = (ruleId: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      spoilerRules: prev.spoilerRules.filter((r) => r.id !== ruleId),
+    }));
+    showToast('Bouclier Anti-Spoiler supprimé');
+  };
+
+  // Module 18: Universal Mute Handlers
+  const handleAddMuteRule = (keyword: string, duration: MuteDuration) => {
+    setAppState((prev) => {
+      const exists = prev.muteRules.some(
+        (r) => r.keyword.toLowerCase().trim() === keyword.toLowerCase().trim()
+      );
+      if (exists) return prev;
+      const newRule: MuteRule = {
+        id: `mute-${Date.now()}`,
+        keyword,
+        duration,
+        createdAtLabel: 'À l’instant',
+      };
+      return { ...prev, muteRules: [newRule, ...prev.muteRules] };
+    });
+    showToast(`Sujet « ${keyword} » masqué du Radar`);
+  };
+
+  const handleRemoveMuteRule = (ruleId: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      muteRules: prev.muteRules.filter((r) => r.id !== ruleId),
+    }));
+    showToast('Sujet débloqué et réintégré au flux');
+  };
+
+  // Module 9: Surprise Guest Handlers
+  const handleToggleFollowGuest = (guestId: string) => {
+    setAppState((prev) => ({
+      ...prev,
+      surpriseGuests: prev.surpriseGuests.map((g) =>
+        g.id === guestId ? { ...g, followed: !g.followed } : g
+      ),
+    }));
+    showToast('Alerte Invité Surprise mise à jour');
+  };
+
+  const handleAddCustomGuest = (name: string, specialty: InterestCategory) => {
+    const newGuest: SurpriseGuestProfile = {
+      id: `guest-custom-${Date.now()}`,
+      name,
+      role: `Personnalité ${specialty}`,
+      specialty,
+      followed: true,
+      appearances: [
+        {
+          id: `app-custom-${Date.now()}`,
+          showTitle: `${name} — Grand entretien inattendu hors promo`,
+          hostMedia: 'Podcast Indépendant · Le Postcast',
+          format: 'Podcasts',
+          dateLabel: 'Détecté aujourd’hui',
+          unexpectedReason: `Apparition surprise détectée par Radar hors de ses canaux habituels (${specialty}).`,
+          durationMinutes: 64,
+          highlightTimestamp: '18:30',
+          externalUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(
+            name + ' interview podcast'
+          )}`,
+        },
+      ],
+    };
+    setAppState((prev) => ({
+      ...prev,
+      surpriseGuests: [newGuest, ...prev.surpriseGuests],
+    }));
+    showToast(`Radar d’Invité Surprise activé pour ${name}`);
+  };
+
+  // Trust Circle Handlers
   const handleToggleCircleMember = (memberId: string) => {
     setAppState((prev) => ({
       ...prev,
@@ -167,6 +399,7 @@ export default function App() {
         m.id === memberId ? { ...m, inCircle: !m.inCircle } : m
       ),
     }));
+    showToast('Cercle de confiance mis à jour');
   };
 
   const handleAddCustomCircleMember = (
@@ -192,7 +425,6 @@ export default function App() {
       recentPickTitle: `Recommandation ${specialty} partagée avec votre Cercle`,
     };
 
-    // Also attach this new circle member to top matching category items so their picks show up immediately
     setItems((prevItems) =>
       prevItems.map((it) =>
         it.category === specialty
@@ -205,10 +437,12 @@ export default function App() {
       ...prev,
       trustCircle: [newMember, ...prev.trustCircle],
     }));
+    showToast(`${name} a été ajouté à votre Cercle de confiance`);
   };
 
   const handleAddAiGems = (newGems: RadarContentItem[]) => {
     setItems((prev) => [...newGems, ...prev]);
+    showToast('2 nouvelles pépites sur mesure ajoutées à votre flux');
   };
 
   const activeCircleIds = useMemo(
@@ -228,6 +462,10 @@ export default function App() {
         moodFilter,
         outOfBubblePercent: appState.outOfBubblePercent,
         searchQuery,
+        onlyAccessibleNow: appState.onlyAccessibleNow,
+        ownedSubscriptions: appState.ownedSubscriptions,
+        muteRules: appState.muteRules,
+        spoilerRules: appState.spoilerRules,
       }),
     [
       items,
@@ -240,98 +478,37 @@ export default function App() {
       moodFilter,
       appState.outOfBubblePercent,
       searchQuery,
+      appState.onlyAccessibleNow,
+      appState.ownedSubscriptions,
+      appState.muteRules,
+      appState.spoilerRules,
     ]
   );
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#0B0D13] text-slate-900 dark:text-slate-100 pb-20 md:pb-12">
-      {/* TOP BAR CONTRACT: 1-row, 3-zone header (Brand wordmark | 4 nav links | 1 primary action) */}
-      <header className="sticky top-0 z-30 h-14 bg-white/95 dark:bg-[#0E1118]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between gap-8">
-        {/* Zone 1: Single text element wordmark */}
-        <a
-          href="#radar"
-          onClick={(e) => {
-            e.preventDefault();
-            setActiveTab('radar');
-          }}
-          className="text-xl font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0 font-display"
-        >
-          Radar
-        </a>
+      {/* DOUBLE BARRE ALPHABETTE (Portail, Bouton BIG, Système de Don, Audio, Thème + Barre Radar) */}
+      <AlphabetteDoubleBar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        watchlistCount={appState.watchlistIds.length}
+        isDark={isDark}
+        onToggleTheme={() => setIsDark((prev) => !prev)}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        onShowToast={showToast}
+      />
 
-        {/* Zone 2: 4 clean single-line text navigation links */}
-        <nav
-          aria-label="Navigation principale"
-          className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600 dark:text-slate-400"
+      {/* FLOATING TOAST FEEDBACK */}
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-20 md:bottom-6 right-4 z-50 px-4 py-3 rounded-xl bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 text-xs font-bold shadow-lg flex items-center gap-2 border border-slate-700 dark:border-amber-400"
         >
-          <button
-            type="button"
-            onClick={() => setActiveTab('radar')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 ${
-              activeTab === 'radar'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-semibold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Radar
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('catchup')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 ${
-              activeTab === 'catchup'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-semibold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Rattrapage
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('agenda')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 ${
-              activeTab === 'agenda'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-semibold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Agenda
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('watchlist')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 ${
-              activeTab === 'watchlist'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-semibold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Ma Liste ({appState.watchlistIds.length})
-          </button>
-        </nav>
-
-        {/* Zone 3: 1 primary action (Fast Light / Dark Onyx Theme Toggle) */}
-        <div className="flex items-center shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsDark((prev) => !prev)}
-            aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre Onyx'}
-            className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-semibold inline-flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            {isDark ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span>Thème Clair</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-amber-400" />
-                <span>Thème Onyx</span>
-              </>
-            )}
-          </button>
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
-      </header>
+      )}
 
       {/* MAIN CONTAINER (1440px responsive workspace) */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-6 space-y-6">
@@ -350,7 +527,7 @@ export default function App() {
               className="font-semibold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Personnaliser mes goûts & plateformes</span>
+              <span>Personnaliser mes goûts & abonnements</span>
             </button>
           </div>
 
@@ -381,6 +558,11 @@ export default function App() {
             filteredFeed={filteredFeed}
             interests={appState.interests}
             platforms={appState.platforms}
+            ownedSubscriptions={appState.ownedSubscriptions}
+            onlyAccessibleNow={appState.onlyAccessibleNow}
+            onToggleOnlyAccessibleNow={handleToggleOnlyAccessibleNow}
+            disconnectMode={appState.disconnectMode}
+            onSwitchToCatchupMagazine={() => setActiveTab('catchup')}
             sourceMode={sourceMode}
             onChangeSourceMode={setSourceMode}
             urgencyFilter={urgencyFilter}
@@ -398,7 +580,25 @@ export default function App() {
             onOpenDetail={setSelectedDetailItem}
             onOpenOnboarding={() => setIsOnboardingOpen(true)}
             onAddAiGems={handleAddAiGems}
+            onMuteKeyword={handleAddMuteRule}
+            onMarkSpoilerSeen={handleMarkSpoilerKeywordSeen}
             trustCircle={appState.trustCircle}
+          />
+        )}
+
+        {activeTab === 'explorer' && (
+          <ExplorerTab
+            allItems={items}
+            userInterests={appState.interests}
+            ownedSubscriptions={appState.ownedSubscriptions}
+            onlyAccessibleNow={appState.onlyAccessibleNow}
+            muteRules={appState.muteRules}
+            surpriseGuests={appState.surpriseGuests}
+            onToggleFollowGuest={handleToggleFollowGuest}
+            onAddCustomGuest={handleAddCustomGuest}
+            watchlistIds={appState.watchlistIds}
+            onToggleSave={handleToggleSaveWatchlist}
+            onOpenDetail={setSelectedDetailItem}
           />
         )}
 
@@ -407,9 +607,14 @@ export default function App() {
             allItems={items}
             interests={appState.interests}
             platforms={appState.platforms}
+            muteRules={appState.muteRules}
+            disconnectMode={appState.disconnectMode}
+            onToggleDisconnectMode={handleToggleDisconnectMode}
             watchlistIds={appState.watchlistIds}
             onToggleSave={handleToggleSaveWatchlist}
             onOpenDetail={setSelectedDetailItem}
+            onMuteKeyword={handleAddMuteRule}
+            onMarkSpoilerSeen={handleMarkSpoilerKeywordSeen}
           />
         )}
 
@@ -418,6 +623,8 @@ export default function App() {
             events={INITIAL_AGENDA_EVENTS}
             remindedEventIds={appState.remindedEventIds}
             onToggleReminder={handleToggleReminder}
+            spoilerRules={appState.spoilerRules}
+            onToggleEventSpoiler={handleToggleEventSpoiler}
           />
         )}
 
@@ -429,7 +636,16 @@ export default function App() {
             onOpenDetail={setSelectedDetailItem}
             interests={appState.interests}
             platforms={appState.platforms}
+            ownedSubscriptions={appState.ownedSubscriptions}
+            onToggleSubscription={handleToggleSubscription}
             onOpenOnboarding={() => setIsOnboardingOpen(true)}
+            spoilerRules={appState.spoilerRules}
+            onAddSpoilerRule={handleAddSpoilerRule}
+            onToggleSpoilerSeen={handleToggleSpoilerSeen}
+            onRemoveSpoilerRule={handleRemoveSpoilerRule}
+            muteRules={appState.muteRules}
+            onAddMuteRule={handleAddMuteRule}
+            onRemoveMuteRule={handleRemoveMuteRule}
             trustCircle={appState.trustCircle}
             onToggleCircleMember={handleToggleCircleMember}
             onAddCustomCircleMember={handleAddCustomCircleMember}
@@ -437,74 +653,90 @@ export default function App() {
         )}
       </main>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR (4 Primary Tabs, Touch-first 44px+ hitboxes) */}
+      {/* MOBILE BOTTOM NAVIGATION BAR (5 Primary Tabs, Touch-first 44px+ hitboxes) */}
       <nav
         aria-label="Navigation mobile"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white/95 dark:bg-[#0E1118]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-4 items-center"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white/95 dark:bg-[#0E1118]/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-5 items-center"
       >
         <button
           type="button"
           onClick={() => setActiveTab('radar')}
-          className={`h-full flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+          className={`h-full flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'radar'
               ? 'text-amber-600 dark:text-amber-400'
               : 'text-slate-500 dark:text-slate-400'
           }`}
         >
-          <Radio className="w-5 h-5" />
+          <Radio className="w-4 h-4" />
           <span>Radar</span>
         </button>
 
         <button
           type="button"
+          onClick={() => setActiveTab('explorer')}
+          className={`h-full flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors cursor-pointer ${
+            activeTab === 'explorer'
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Explorer</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('catchup')}
-          className={`h-full flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+          className={`h-full flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'catchup'
               ? 'text-amber-600 dark:text-amber-400'
               : 'text-slate-500 dark:text-slate-400'
           }`}
         >
-          <Headphones className="w-5 h-5" />
+          <Headphones className="w-4 h-4" />
           <span>Rattrapage</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('agenda')}
-          className={`h-full flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+          className={`h-full flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'agenda'
               ? 'text-amber-600 dark:text-amber-400'
               : 'text-slate-500 dark:text-slate-400'
           }`}
         >
-          <Calendar className="w-5 h-5" />
+          <Calendar className="w-4 h-4" />
           <span>Agenda</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('watchlist')}
-          className={`h-full flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+          className={`h-full flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'watchlist'
               ? 'text-amber-600 dark:text-amber-400'
               : 'text-slate-500 dark:text-slate-400'
           }`}
         >
-          <Bookmark className="w-5 h-5" />
-          <span>Ma Liste ({appState.watchlistIds.length})</span>
+          <Bookmark className="w-4 h-4" />
+          <span>Mon Espace</span>
         </button>
       </nav>
 
-      {/* ONBOARDING MODAL (Calibration des goûts sans compte) */}
+      {/* ONBOARDING MODAL (Calibration des goûts & abonnements sans compte) */}
       <OnboardingModal
         isOpen={isOnboardingOpen}
         interests={appState.interests}
         platforms={appState.platforms}
+        ownedSubscriptions={appState.ownedSubscriptions}
         onToggleInterest={handleToggleInterest}
         onTogglePlatform={handleTogglePlatform}
+        onToggleSubscription={handleToggleSubscription}
         onComplete={() => {
           setAppState((prev) => ({ ...prev, hasCompletedOnboarding: true }));
           setIsOnboardingOpen(false);
+          showToast('Votre Radar a été recalibré avec succès');
         }}
         onClose={() => setIsOnboardingOpen(false)}
       />

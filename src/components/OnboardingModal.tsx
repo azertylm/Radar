@@ -1,14 +1,16 @@
 import React from 'react';
-import { Check, Compass, Sparkles, X } from 'lucide-react';
-import { ALL_INTERESTS, ALL_PLATFORMS } from '../data/mockRadarData';
-import { ContentFormat, InterestCategory } from '../types/radar';
+import { Check, Compass, Sparkles, Tv, X } from 'lucide-react';
+import { ALL_INTERESTS, ALL_PLATFORMS, ALL_SUBSCRIPTIONS } from '../data/mockRadarData';
+import { ContentFormat, InterestCategory, SubscriptionId } from '../types/radar';
 
 interface OnboardingModalProps {
   isOpen: boolean;
   interests: InterestCategory[];
   platforms: ContentFormat[];
+  ownedSubscriptions: SubscriptionId[];
   onToggleInterest: (category: InterestCategory) => void;
   onTogglePlatform: (platform: ContentFormat) => void;
+  onToggleSubscription: (subId: SubscriptionId) => void;
   onComplete: () => void;
   onClose: () => void;
 }
@@ -17,8 +19,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   isOpen,
   interests,
   platforms,
+  ownedSubscriptions,
   onToggleInterest,
   onTogglePlatform,
+  onToggleSubscription,
   onComplete,
   onClose,
 }) => {
@@ -46,7 +50,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 Calibrez votre Radar personnel
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Sans création de compte · Sauvegardé instantanément sur cet appareil
+                Sans création de compte · Sauvegardé instantanément dans votre navigateur
               </p>
             </div>
           </div>
@@ -54,7 +58,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Fermer la configuration des goûts"
-            className="min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="min-h-[44px] min-w-[44px] rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -64,7 +68,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         <div className="p-6 space-y-8">
           {/* Step 1: Centres d'intérêt */}
           <section aria-labelledby="onboarding-interests-heading">
-            <div className="flex items-baseline justify-between mb-3">
+            <div className="flex items-baseline justify-between mb-2">
               <h3
                 id="onboarding-interests-heading"
                 className="text-base font-semibold text-slate-900 dark:text-white"
@@ -75,9 +79,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 {interests.length} sélectionné{interests.length > 1 ? 's' : ''}
               </span>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              Choisissez les thématiques pour lesquelles vous ne voulez manquer aucun direct, replay ou pépite.
-            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {ALL_INTERESTS.map((item) => {
                 const isSelected = interests.includes(item.id);
@@ -87,10 +88,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     type="button"
                     onClick={() => onToggleInterest(item.id)}
                     aria-pressed={isSelected}
-                    className={`min-h-[56px] p-3.5 rounded-xl border text-left transition-all flex items-start justify-between gap-2 ${
+                    className={`min-h-[54px] p-3 rounded-xl border text-left transition-all flex items-start justify-between gap-2 cursor-pointer ${
                       isSelected
-                        ? 'bg-slate-900 text-white border-slate-900 dark:bg-amber-500 dark:text-slate-950 dark:border-amber-500 shadow-sm'
-                        : 'bg-slate-50/70 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
+                        ? 'bg-slate-900 text-white border-slate-900 dark:bg-amber-500 dark:text-slate-950 dark:border-amber-500 shadow-xs'
+                        : 'bg-slate-50/70 dark:bg-slate-900/60 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-slate-400'
                     }`}
                   >
                     <div className="min-w-0">
@@ -120,20 +121,70 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
           </section>
 
-          {/* Step 2: Plateformes utilisées */}
+          {/* Step 2: Abonnements possédés (pour le filtre "Accessible tout de suite") */}
+          <section aria-labelledby="onboarding-subs-heading">
+            <div className="flex items-baseline justify-between mb-2">
+              <h3
+                id="onboarding-subs-heading"
+                className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2"
+              >
+                <Tv className="w-4 h-4 text-amber-500" />
+                <span>02. Vos accès & abonnements (pour le filtre « Accessible tout de suite »)</span>
+              </h3>
+              <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                {ownedSubscriptions.length} actif{ownedSubscriptions.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {ALL_SUBSCRIPTIONS.map((sub) => {
+                const isSelected = ownedSubscriptions.includes(sub.id);
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => onToggleSubscription(sub.id)}
+                    aria-pressed={isSelected}
+                    className={`min-h-[52px] px-4 py-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-500/10 border-emerald-500/50 text-slate-900 dark:text-white'
+                        : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{sub.label}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {sub.description}
+                      </div>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white'
+                          : 'border border-slate-300 dark:border-slate-700'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3.5 h-3.5" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Step 3: Formats & Supports */}
           <section aria-labelledby="onboarding-platforms-heading">
-            <div className="flex items-baseline justify-between mb-3">
+            <div className="flex items-baseline justify-between mb-2">
               <h3
                 id="onboarding-platforms-heading"
                 className="text-base font-semibold text-slate-900 dark:text-white"
               >
-                02. Vos supports & plateformes habituels
+                03. Vos formats favoris
               </h3>
               <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
                 {platforms.length} actif{platforms.length > 1 ? 's' : ''}
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {ALL_PLATFORMS.map((plat) => {
                 const isSelected = platforms.includes(plat.id);
                 return (
@@ -142,26 +193,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     type="button"
                     onClick={() => onTogglePlatform(plat.id)}
                     aria-pressed={isSelected}
-                    className={`min-h-[54px] px-4 py-3 rounded-xl border text-left transition-all flex items-center justify-between gap-3 ${
+                    className={`min-h-[50px] px-3.5 py-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500/10 border-amber-500/60 text-slate-900 dark:text-white'
                         : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400'
                     }`}
                   >
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold">{plat.label}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      <div className="text-xs font-semibold truncate">{plat.label}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                         {plat.examples}
                       </div>
                     </div>
                     <div
-                      className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                      className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
                         isSelected
                           ? 'bg-amber-500 text-slate-950'
                           : 'border border-slate-300 dark:border-slate-700'
                       }`}
                     >
-                      {isSelected && <Check className="w-3.5 h-3.5" />}
+                      {isSelected && <Check className="w-3 h-3" />}
                     </div>
                   </button>
                 );
@@ -173,7 +224,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         {/* Footer */}
         <div className="sticky bottom-0 z-10 flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 bg-slate-50 dark:bg-[#0E1118] border-t border-slate-200 dark:border-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Vos Jumeaux de goûts sont recalculés en temps réel selon cette sélection.
+            Vos Jumeaux de goûts et votre filtre d’abonnements sont mis à jour en temps réel.
           </p>
           <button
             type="button"
