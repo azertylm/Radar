@@ -232,7 +232,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
                 <span>Radar de Buzz · À ne pas louper maintenant</span>
               </h2>
 
-              <div className="flex items-center gap-1.5" role="tablist" aria-label="Pics de buzz actifs">
+              <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Pics de buzz actifs">
                 {buzzItems.map((b, idx) => (
                   <button
                     key={b.id}
@@ -240,7 +240,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
                     role="tab"
                     aria-selected={idx === activeBuzzIndex}
                     onClick={() => setActiveBuzzIndex(idx)}
-                    className={`min-h-[36px] px-3 py-1 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    className={`min-h-[36px] px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       idx === activeBuzzIndex
                         ? 'bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950'
                         : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
@@ -332,9 +332,9 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
                         href={buzzLink.highlightUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 rounded-lg px-3 py-1 transition-colors"
+                        className="inline-flex flex-wrap items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 rounded-lg px-3 py-1.5 transition-colors max-w-full"
                       >
-                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                        <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span className="font-mono tabular-nums">
                           Moment fort : {activeBuzz.highlightMoment.timestamp}
                         </span>
@@ -344,12 +344,12 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
                   )}
 
                   <div className="text-xs text-slate-400 flex flex-wrap items-center gap-2">
-                    <Users className="w-3.5 h-3.5 text-amber-400" />
+                    <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span className="tabular-nums text-slate-200 font-medium">
                       Validé par {activeBuzz.twinCount} Jumeaux à {activeBuzz.twinMatchPercent} %
                     </span>
                     <span aria-hidden="true">·</span>
-                    <span className="font-mono text-amber-300/90">{buzzLink.domain}</span>
+                    <span className="font-mono text-amber-300/90 break-all">{buzzLink.domain}</span>
                   </div>
                 </div>
 
@@ -359,10 +359,10 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
                     href={buzzLink.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-h-[44px] px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors whitespace-nowrap shrink-0"
+                    className="min-h-[44px] px-4 sm:px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
                   >
                     <span>Ouvrir sur {buzzLink.platformLabel}</span>
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-4 h-4 shrink-0" />
                   </a>
 
                   <button
@@ -411,7 +411,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
           {/* 4-Source Selector */}
           <div
-            className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800"
+            className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 max-w-full"
             role="group"
             aria-label="Sélecteur de source du flux"
           >
@@ -419,7 +419,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={() => onChangeSourceMode('for_you')}
               aria-pressed={sourceMode === 'for_you'}
-              className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 sourceMode === 'for_you'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400'
@@ -431,7 +431,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={() => onChangeSourceMode('taste_twins')}
               aria-pressed={sourceMode === 'taste_twins'}
-              className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 sourceMode === 'taste_twins'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400'
@@ -443,7 +443,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={() => onChangeSourceMode('trust_circle')}
               aria-pressed={sourceMode === 'trust_circle'}
-              className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 sourceMode === 'trust_circle'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400'
@@ -455,13 +455,13 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={() => onChangeSourceMode('hidden_gems')}
               aria-pressed={sourceMode === 'hidden_gems'}
-              className={`min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                 sourceMode === 'hidden_gems'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10'
               }`}
             >
-              <Gem className="w-3.5 h-3.5" />
+              <Gem className="w-3.5 h-3.5 shrink-0" />
               <span>Pépites cachées ({hiddenGemsCount})</span>
             </button>
           </div>
@@ -473,13 +473,13 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={onToggleOnlyAccessibleNow}
               aria-pressed={onlyAccessibleNow}
-              className={`min-h-[40px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                 onlyAccessibleNow
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Tv className="w-3.5 h-3.5" />
+              <Tv className="w-3.5 h-3.5 shrink-0" />
               <span>Accessible tout de suite ({ownedSubscriptions.length} accès)</span>
             </button>
 
@@ -487,13 +487,13 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={() => setShowMoreFilters((prev) => !prev)}
               aria-expanded={showMoreFilters}
-              className={`min-h-[40px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                 showMoreFilters || moodFilter !== 'all' || formatFilter !== 'all'
                   ? 'bg-amber-500/15 border-amber-500/50 text-amber-800 dark:text-amber-300'
                   : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
               <span>Hors-bulle ({outOfBubblePercent} %) & Support</span>
             </button>
 
@@ -501,12 +501,12 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
               type="button"
               onClick={handleSuggestGemsByAi}
               disabled={isSuggestingAi}
-              className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               {isSuggestingAi ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
               )}
               <span>+ Pépites IA</span>
             </button>
@@ -638,7 +638,7 @@ export const RadarHomeTab: React.FC<RadarHomeTabProps> = ({
 
       {/* 3. INTELLIGENT FEED GRID */}
       <section aria-labelledby="feed-results-heading" className="space-y-4">
-        <div className="flex items-baseline justify-between">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2
             id="feed-results-heading"
             className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white"

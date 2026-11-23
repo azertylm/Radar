@@ -5,12 +5,10 @@ import {
   CheckCircle2,
   Compass,
   Headphones,
-  Moon,
   Radio,
   Search,
   SlidersHorizontal,
   Sparkles,
-  Sun,
 } from 'lucide-react';
 import { AgendaTab } from './components/AgendaTab';
 import { AlphabetteDoubleBar } from './components/AlphabetteDoubleBar';
@@ -48,6 +46,8 @@ type ActiveTab = 'radar' | 'explorer' | 'catchup' | 'agenda' | 'watchlist';
 
 const STORAGE_KEY = 'radar_anti_fomo_state_v2';
 const THEME_STORAGE_KEY = 'radar_theme_mode_v1';
+const BIG_MODE_STORAGE_KEY = 'radar_big_mode_v1';
+const SIMPLE_MODE_STORAGE_KEY = 'radar_simple_mode_v1';
 
 interface StoredRadarState {
   hasCompletedOnboarding: boolean;
@@ -128,6 +128,39 @@ export default function App() {
     }
   }, [appState]);
 
+  // BIG Mode & Simple Mode state (isolated from Double Barre header)
+  const [isBigMode, setIsBigMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(BIG_MODE_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isSimpleMode, setIsSimpleMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(SIMPLE_MODE_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(BIG_MODE_STORAGE_KEY, String(isBigMode));
+    } catch {
+      // ignore
+    }
+  }, [isBigMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIMPLE_MODE_STORAGE_KEY, String(isSimpleMode));
+    } catch {
+      // ignore
+    }
+  }, [isSimpleMode]);
+
   // Navigation, Modal & Toast State
   const [activeTab, setActiveTab] = useState<ActiveTab>('radar');
   const [items, setItems] = useState<RadarContentItem[]>(INITIAL_RADAR_ITEMS);
@@ -137,6 +170,33 @@ export default function App() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
+  };
+
+  const handleToggleBigMode = () => {
+    setIsBigMode((prev) => {
+      const next = !prev;
+      showToast(
+        next
+          ? 'Mode BIG activé : texte agrandi sans débordement'
+          : 'Mode BIG désactivé : taille standard'
+      );
+      return next;
+    });
+  };
+
+  const handleToggleSimpleMode = () => {
+    setIsSimpleMode((prev) => {
+      const next = !prev;
+      if (next && !isBigMode) {
+        setIsBigMode(true);
+      }
+      showToast(
+        next
+          ? 'Mode simple activé : lecture apaisée et agrandie'
+          : 'Mode simple désactivé'
+      );
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -486,15 +546,18 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#0B0D13] text-slate-900 dark:text-slate-100 pb-20 md:pb-12">
-      {/* DOUBLE BARRE ALPHABETTE (Portail, Bouton BIG, Système de Don, Audio, Thème + Barre Radar) */}
+    <div className="min-h-screen flex flex-col overflow-x-clip bg-slate-50 dark:bg-[#0B0D13] text-slate-900 dark:text-slate-100 pb-20 md:pb-12">
+      {/* DOUBLE BARRE ALPHABETTE (Style Info Perso, dimensions fixes en px) */}
       <AlphabetteDoubleBar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        watchlistCount={appState.watchlistIds.length}
+        appTitle="Radar"
+        appSubtitle="ASSISTANT ANTI-FOMO"
         isDark={isDark}
         onToggleTheme={() => setIsDark((prev) => !prev)}
-        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+        isBigMode={isBigMode}
+        onToggleBigMode={handleToggleBigMode}
+        isSimpleMode={isSimpleMode}
+        onToggleSimpleMode={handleToggleSimpleMode}
+        onNavigateHome={() => setActiveTab('radar')}
         onShowToast={showToast}
       />
 
@@ -503,18 +566,107 @@ export default function App() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-20 md:bottom-6 right-4 z-50 px-4 py-3 rounded-xl bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 text-xs font-bold shadow-lg flex items-center gap-2 border border-slate-700 dark:border-amber-400"
+          className="fixed bottom-20 md:bottom-6 right-4 z-50 max-w-[calc(100vw-2rem)] px-4 py-3 rounded-xl bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 text-xs font-bold shadow-lg flex items-center gap-2 border border-slate-700 dark:border-amber-400"
         >
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* MAIN CONTAINER (1440px responsive workspace) */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-6 space-y-6">
+      {/* MAIN CONTAINER (1440px responsive workspace, isolé pour mode BIG) */}
+      <main
+        className={`flex-1 w-full max-w-7xl mx-auto px-3 sm:px-8 pt-5 space-y-6 ${
+          isBigMode ? 'radar-big-mode' : ''
+        } ${isSimpleMode ? 'radar-simple-mode' : ''}`}
+      >
+        {/* DESKTOP 5-TAB NAVIGATION (Hors de la Double Barre pour respecter la règle d'en-tête) */}
+        <nav
+          aria-label="Navigation principale"
+          className="no-print hidden md:flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 shadow-xs"
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab('radar')}
+            aria-current={activeTab === 'radar' ? 'page' : undefined}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === 'radar'
+                ? 'bg-[#3f51b5] text-white dark:bg-amber-500 dark:text-slate-950'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Radio className="w-4 h-4 shrink-0" />
+            <span>Radar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('explorer')}
+            aria-current={activeTab === 'explorer' ? 'page' : undefined}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === 'explorer'
+                ? 'bg-[#3f51b5] text-white dark:bg-amber-500 dark:text-slate-950'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span>Explorer</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('catchup')}
+            aria-current={activeTab === 'catchup' ? 'page' : undefined}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === 'catchup'
+                ? 'bg-[#3f51b5] text-white dark:bg-amber-500 dark:text-slate-950'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Headphones className="w-4 h-4 shrink-0" />
+            <span>Rattrapage</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('agenda')}
+            aria-current={activeTab === 'agenda' ? 'page' : undefined}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === 'agenda'
+                ? 'bg-[#3f51b5] text-white dark:bg-amber-500 dark:text-slate-950'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>Agenda</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('watchlist')}
+            aria-current={activeTab === 'watchlist' ? 'page' : undefined}
+            className={`min-h-[42px] px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === 'watchlist'
+                ? 'bg-[#3f51b5] text-white dark:bg-amber-500 dark:text-slate-950'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Bookmark className="w-4 h-4 shrink-0" />
+            <span>Mon Espace</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                activeTab === 'watchlist'
+                  ? 'bg-white/20 text-white dark:bg-slate-950/20 dark:text-slate-950'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              {appState.watchlistIds.length}
+            </span>
+          </button>
+        </nav>
+
         {/* Contextual Onboarding & Search Strip */}
         <div className="rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-300 min-w-0">
             <Compass className="w-4 h-4 text-amber-500 shrink-0" />
             <span className="font-semibold text-slate-900 dark:text-white">
               Vos goûts actifs :

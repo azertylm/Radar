@@ -125,14 +125,14 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({
           </div>
 
           {/* Add Personality Free Input Bar */}
-          <form onSubmit={handleAddGuestSubmit} className="flex flex-wrap items-center gap-2 shrink-0">
+          <form onSubmit={handleAddGuestSubmit} className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <input
               type="text"
               value={newGuestName}
               onChange={(e) => setNewGuestName(e.target.value)}
               placeholder="Ajouter une personnalité (ex: Thomas Pesquet)..."
               aria-label="Nom de la personnalité à suivre"
-              className="min-h-[42px] px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white w-56 sm:w-64"
+              className="min-h-[42px] px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white w-full sm:w-64"
             />
             <select
               aria-label="Domaine de la personnalité"
@@ -231,8 +231,8 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({
                     )}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-2">
-                    <span className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1.5 truncate">
+                  <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 inline-flex items-center gap-1.5 min-w-0">
                       <FormatIcon className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{app.hostMedia}</span>
                     </span>
@@ -241,10 +241,10 @@ export const ExplorerTab: React.FC<ExplorerTabProps> = ({
                       href={linkInfo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                      className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 text-xs font-bold inline-flex items-center gap-1.5"
                     >
                       <span>Ouvrir sur {linkInfo.platformLabel}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                     </a>
                   </div>
                 </div>

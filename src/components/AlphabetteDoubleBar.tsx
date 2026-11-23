@@ -1,575 +1,914 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Bookmark,
-  Calendar,
+  BarChart2,
   Check,
-  CheckCircle2,
-  ChevronDown,
   CreditCard,
+  Crown,
   ExternalLink,
-  Globe,
-  Grid,
-  Headphones,
   Heart,
+  LayoutGrid,
   Moon,
-  Radio,
-  Share2,
-  SlidersHorizontal,
-  Sparkles,
+  MoreHorizontal,
+  Star,
   Sun,
   Volume2,
   VolumeX,
   X,
-  ZoomIn,
 } from 'lucide-react';
 
-export type ActiveTab = 'radar' | 'explorer' | 'catchup' | 'agenda' | 'watchlist';
-export type BigModeLevel = 'normal' | 'big' | 'xbig';
-
 interface AlphabetteDoubleBarProps {
-  activeTab: ActiveTab;
-  onSelectTab: (tab: ActiveTab) => void;
-  watchlistCount: number;
+  appTitle?: string;
+  appSubtitle?: string;
   isDark: boolean;
   onToggleTheme: () => void;
-  onOpenOnboarding: () => void;
+  isBigMode: boolean;
+  onToggleBigMode: () => void;
+  isSimpleMode: boolean;
+  onToggleSimpleMode: () => void;
+  onNavigateHome: () => void;
   onShowToast: (msg: string) => void;
 }
 
-const BIG_MODE_STORAGE_KEY = 'alphabette_big_mode_v1';
-const DONOR_STORAGE_KEY = 'alphabette_donor_badge_v1';
+interface SuiteAppItem {
+  id: string;
+  name: string;
+  description: string;
+  domain: string;
+  url: string;
+  isNew?: boolean;
+}
 
-const BIG_LEVELS: Record<
-  BigModeLevel,
-  { label: string; badge: string; rootFontSize: string; next: BigModeLevel }
-> = {
-  normal: {
-    label: 'BIG',
-    badge: '100%',
-    rootFontSize: '100%',
-    next: 'big',
-  },
-  big: {
-    label: 'BIG +',
-    badge: '120%',
-    rootFontSize: '118%',
-    next: 'xbig',
-  },
-  xbig: {
-    label: 'BIG MAX',
-    badge: '135%',
-    rootFontSize: '132%',
-    next: 'normal',
-  },
-};
-
-const ALPHABETTE_ECOSYSTEM_APPS = [
+const SUITE_APPS: SuiteAppItem[] = [
   {
-    id: 'alphabette',
-    name: 'Alphabette Portail',
-    domain: 'alphabette.fr',
-    url: 'https://alphabette.fr',
-    tag: 'Portail Central',
-    active: false,
+    id: 'radar',
+    name: 'Radar',
+    description: 'Assistant culturel anti-FOMO multi-supports (TV, YouTube, Podcasts, Presse).',
+    domain: 'radar.alphabette.fr',
+    url: '#radar',
+    isNew: true,
   },
   {
     id: 'infoperso',
     name: 'InfoPerso',
+    description: 'Tableau de bord d’actualités et de veille personnelle sans algorithme opaque.',
     domain: 'infoperso.fr',
     url: 'https://infoperso.fr',
-    tag: 'Actualités & Veille',
-    active: false,
-  },
-  {
-    id: 'radar',
-    name: 'Radar Anti-FOMO',
-    domain: 'radar.alphabette.fr',
-    url: '#radar',
-    tag: 'Application active',
-    active: true,
   },
   {
     id: 'cinephare',
     name: 'CinéPhare',
+    description: 'Programme TV, replays cinéma et sorties salles triés par vos goûts.',
     domain: 'cinephare.fr',
     url: 'https://alphabette.fr',
-    tag: 'Cinéma & Séries',
-    active: false,
+    isNew: true,
   },
   {
     id: 'podpulse',
     name: 'PodPulse',
+    description: 'Découverte de podcasts indépendants et moments forts horodatés.',
     domain: 'podpulse.fr',
     url: 'https://alphabette.fr',
-    tag: 'Podcasts & Radio',
-    active: false,
+    isNew: true,
   },
   {
     id: 'directscore',
     name: 'DirectScore',
+    description: 'Agenda sportif en direct avec bouclier anti-spoiler intégré.',
     domain: 'directscore.fr',
     url: 'https://alphabette.fr',
-    tag: 'Sport & Directs',
-    active: false,
+  },
+  {
+    id: 'lecto',
+    name: 'LectoPresse',
+    description: 'Kiosque de synthèses presse en 3 points clés et lecture audio.',
+    domain: 'lectopresse.fr',
+    url: 'https://alphabette.fr',
   },
 ];
 
+const FAVORITES_KEY = 'alphabette_suite_favorites_v1';
+const PINNED_KEY = 'alphabette_radar_pinned_v1';
+const DONOR_KEY = 'alphabette_donor_badge_v1';
+const LANG_KEY = 'alphabette_lang_v1';
+
 const DONATION_PRESETS = [
-  { amount: 2, label: '2 €', desc: 'Un café pour le développeur' },
-  { amount: 5, label: '5 €', desc: 'Participation serveur VPS OVH' },
-  { amount: 10, label: '10 €', desc: 'Soutien complet sans pub' },
-  { amount: 20, label: '20 €', desc: 'Mécène du réseau Alphabette' },
+  { amount: 2, label: '2 €', desc: 'Un café' },
+  { amount: 5, label: '5 €', desc: 'Serveur VPS' },
+  { amount: 10, label: '10 €', desc: 'Soutien sans pub' },
+  { amount: 20, label: '20 €', desc: 'Mécène Alphabette' },
 ];
 
 export const AlphabetteDoubleBar: React.FC<AlphabetteDoubleBarProps> = ({
-  activeTab,
-  onSelectTab,
-  watchlistCount,
+  appTitle = 'Radar',
+  appSubtitle = 'ASSISTANT ANTI-FOMO',
   isDark,
   onToggleTheme,
-  onOpenOnboarding,
+  isBigMode,
+  onToggleBigMode,
+  isSimpleMode,
+  onToggleSimpleMode,
+  onNavigateHome,
   onShowToast,
 }) => {
-  // 1. Bouton BIG (Grand Texte / Accessibilité instantanée)
-  const [bigLevel, setBigLevel] = useState<BigModeLevel>(() => {
+  const [favoriteAppIds, setFavoriteAppIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(BIG_MODE_STORAGE_KEY) as BigModeLevel | null;
-      return saved && BIG_LEVELS[saved] ? saved : 'normal';
+      const raw = localStorage.getItem(FAVORITES_KEY);
+      return raw ? JSON.parse(raw) : ['radar', 'infoperso'];
     } catch {
-      return 'normal';
+      return ['radar', 'infoperso'];
     }
   });
 
   useEffect(() => {
-    const config = BIG_LEVELS[bigLevel] || BIG_LEVELS.normal;
-    document.documentElement.style.fontSize = config.rootFontSize;
     try {
-      localStorage.setItem(BIG_MODE_STORAGE_KEY, bigLevel);
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteAppIds));
     } catch {
-      // ignore storage errors
+      // ignore
     }
-  }, [bigLevel]);
+  }, [favoriteAppIds]);
 
-  const handleCycleBigMode = () => {
-    const nextLevel = BIG_LEVELS[bigLevel].next;
-    setBigLevel(nextLevel);
-    if (nextLevel === 'big') {
-      onShowToast('Mode BIG activé (Affichage agrandi à 120 %)');
-    } else if (nextLevel === 'xbig') {
-      onShowToast('Mode BIG MAX activé (Affichage très grand à 135 %)');
-    } else {
-      onShowToast('Taille d’affichage standard rétablie (100 %)');
-    }
-  };
-
-  // 2. Système de Don Alphabette
-  const [isDonationOpen, setIsDonationOpen] = useState(false);
-  const [donationAmount, setDonationAmount] = useState<number>(5);
-  const [customAmount, setCustomAmount] = useState<string>('');
-  const [donationFrequency, setDonationFrequency] = useState<'once' | 'monthly'>('once');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'kofi'>('card');
-  const [donorMessage, setDonorMessage] = useState<string>('');
-  const [isDonor, setIsDonor] = useState<boolean>(() => {
+  const [isPinned, setIsPinned] = useState<boolean>(() => {
     try {
-      return localStorage.getItem(DONOR_STORAGE_KEY) === 'true';
+      return localStorage.getItem(PINNED_KEY) === 'true';
     } catch {
       return false;
     }
   });
-  const [serverGoalPercent, setServerGoalPercent] = useState<number>(78);
 
-  const handleConfirmDonation = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalEuros = customAmount ? Number(customAmount) || donationAmount : donationAmount;
-    setIsDonor(true);
-    setServerGoalPercent((prev) => Math.min(100, prev + Math.max(2, Math.round(finalEuros / 2))));
+  const [selectedLang, setSelectedLang] = useState<string>(() => {
     try {
-      localStorage.setItem(DONOR_STORAGE_KEY, 'true');
+      return localStorage.getItem(LANG_KEY) || 'FR';
     } catch {
-      // ignore
+      return 'FR';
     }
-    setIsDonationOpen(false);
-    onShowToast(
-      `Merci infiniment pour votre don de ${finalEuros} € ! Votre badge Soutien Alphabette est actif ❤️`
+  });
+
+  // Modals & Dropdowns
+  const [activeModal, setActiveModal] = useState<
+    null | 'all_apps' | 'new_apps' | 'subscription' | 'donation' | 'install' | 'feedback' | 'language'
+  >(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Voice synthesis state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Donation modal state
+  const [donationAmount, setDonationAmount] = useState<number>(5);
+  const [customAmount, setCustomAmount] = useState<string>('');
+  const [donationFrequency, setDonationFrequency] = useState<'once' | 'monthly'>('once');
+  const [isDonor, setIsDonor] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DONOR_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Feedback modal state
+  const [feedbackText, setFeedbackText] = useState('');
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
+
+  // Clean up speechSynthesis on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const toggleFavoriteApp = (id: string) => {
+    setFavoriteAppIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  // 3. Lecture vocale rapide (TTS) dans la barre
-  const [isReadingPage, setIsReadingPage] = useState(false);
-
-  const handleToggleQuickVoice = () => {
+  const handleToggleSpeech = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      onShowToast('La synthèse vocale n’est pas disponible sur ce navigateur');
+      onShowToast('Synthèse vocale non disponible sur ce navigateur');
       return;
     }
-    if (isReadingPage) {
+    if (isSpeaking) {
       window.speechSynthesis.cancel();
-      setIsReadingPage(false);
-      onShowToast('Lecture vocale arrêtée');
-    } else {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(
-        'Bienvenue sur Radar, l’assistant anti-FOMO du réseau Alphabette. Utilisez le bouton BIG en haut pour agrandir toute l’interface, ou cliquez sur un contenu pour l’ouvrir directement.'
-      );
-      utterance.lang = 'fr-FR';
-      utterance.onend = () => setIsReadingPage(false);
-      window.speechSynthesis.speak(utterance);
-      setIsReadingPage(true);
-      onShowToast('Lecture vocale de l’assistant activée');
+      setIsSpeaking(false);
+      onShowToast('Lecture à haute voix arrêtée');
+      return;
     }
+
+    window.speechSynthesis.cancel();
+    const mainEl = document.querySelector('main');
+    const rawText = mainEl?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 900) || '';
+    const textToRead =
+      rawText.length > 20
+        ? `Radar, votre assistant anti-FOMO. ${rawText}`
+        : 'Bienvenue sur Radar, votre assistant culturel anti-FOMO de la suite Alphabette.';
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 1.02;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+    onShowToast('Lecture à haute voix démarrée');
   };
 
-  // 4. Partage rapide & Portail Écosystème
-  const [isEcosystemOpen, setIsEcosystemOpen] = useState(false);
-
-  const handleShareApp = async () => {
-    const shareUrl = window.location.href;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        onShowToast('Lien de l’application copié dans le presse-papiers !');
-        return;
-      } catch {
-        // fallback
-      }
+  const handleTogglePin = () => {
+    const next = !isPinned;
+    setIsPinned(next);
+    try {
+      localStorage.setItem(PINNED_KEY, String(next));
+    } catch {
+      // ignore
     }
-    onShowToast('Partagez Radar · Écosystème Alphabette (alphabette.fr)');
+    setIsMenuOpen(false);
+    onShowToast(next ? 'Radar épinglé à vos favoris ⭐' : 'Épingle retirée');
   };
+
+  const handleConfirmDonation = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = customAmount ? Number(customAmount) || donationAmount : donationAmount;
+    setIsDonor(true);
+    try {
+      localStorage.setItem(DONOR_KEY, 'true');
+    } catch {
+      // ignore
+    }
+    setActiveModal(null);
+    onShowToast(`Merci pour votre don de ${amount} € ! Soutien Alphabette activé ❤️`);
+  };
+
+  const handleSubmitFeedback = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackText.trim()) return;
+    setFeedbackText('');
+    setActiveModal(null);
+    onShowToast('Merci pour votre avis ! Message transmis à l’équipe Alphabette.');
+  };
+
+  const newApps = SUITE_APPS.filter((a) => a.isNew);
 
   return (
-    <header className="sticky top-0 z-30 shadow-sm">
+    <>
       {/* =====================================================================
-          BARRE 1 : LA BARRE SUPÉRIEURE ALPHABETTE (Portail + Bouton BIG + Don + Outils)
+          DOUBLE BARRE ALPHABETTE FIXE (Dimensions en px fixes, isolée du mode BIG)
          ===================================================================== */}
-      <div className="bg-slate-950 text-white border-b border-slate-800 px-3 sm:px-8 min-h-[46px] py-1.5 flex flex-wrap items-center justify-between gap-2">
-        {/* Gauche : Identité Alphabette + infoperso.fr + Sélecteur des 15 sites */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <a
-            href="https://alphabette.fr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs tracking-wide transition-colors whitespace-nowrap shrink-0"
-            title="Ouvrir le portail Alphabette (alphabette.fr)"
-          >
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="font-mono uppercase tracking-wider">
-              ALPHABETTE<span className="text-amber-400">.FR</span>
-            </span>
-          </a>
+      <header
+        className="no-print sticky top-0 z-40 w-full select-none"
+        style={{ fontSize: '16px', lineHeight: 'normal' }}
+      >
+        {/* 1. BARRE SUPÉRIEURE (Top Bar Écosystème) */}
+        <div className="bg-[#182334] dark:bg-[#0b1220] text-white h-[46px] sm:h-[50px] px-[8px] sm:px-[16px] flex items-center justify-between gap-[4px] sm:gap-[8px] flex-nowrap">
+          {/* Bloc de gauche */}
+          <div className="flex items-center gap-[4px] sm:gap-[10px] min-w-0">
+            {/* Logo + Nom (alphabette) */}
+            <a
+              href="https://alphabette.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Accueil Alphabette (alphabette.fr)"
+              className="inline-flex items-center gap-[5px] sm:gap-[8px] shrink-0 focus-visible:outline-2 focus-visible:outline-[#f59e0b] rounded-[6px]"
+            >
+              <span className="w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] rounded-full bg-[#3355d1] text-white font-extrabold text-[15px] sm:text-[16px] flex items-center justify-center leading-none">
+                a
+              </span>
+              <span className="font-bold lowercase tracking-tight text-[14.5px] sm:text-[17px] text-white whitespace-nowrap">
+                alphabette
+              </span>
+            </a>
 
-          <a
-            href="https://infoperso.fr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900/70 hover:bg-slate-800 border border-slate-800/80 text-slate-200 hover:text-amber-400 text-xs font-medium transition-colors whitespace-nowrap shrink-0"
-          >
-            <Globe className="w-3.5 h-3.5 text-amber-400" />
-            <span>infoperso.fr</span>
-            <ExternalLink className="w-3 h-3 opacity-70" />
-          </a>
+            {/* Bouton .eu */}
+            <a
+              href="https://alphabette.eu"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Laboratoire Alphabette Europe (alphabette.eu)"
+              className="w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] rounded-full bg-white/10 hover:bg-white/20 text-white text-[12px] sm:text-[13px] font-semibold flex items-center justify-center shrink-0 transition-colors focus-visible:outline-2 focus-visible:outline-[#f59e0b]"
+            >
+              .eu
+            </a>
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsEcosystemOpen((prev) => !prev);
-              setIsDonationOpen(false);
-            }}
-            aria-expanded={isEcosystemOpen}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <Grid className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">Les 15 sites Alphabette</span>
-            <span className="md:hidden">Sites .fr</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </button>
+            {/* Bouton « Toutes les applis » */}
+            <button
+              type="button"
+              onClick={() => setActiveModal('all_apps')}
+              aria-label="Toutes les applis de la suite Alphabette"
+              className="w-[34px] h-[34px] sm:w-auto sm:h-[36px] sm:px-[10px] rounded-full sm:rounded-[10px] bg-white/10 hover:bg-white/20 text-white inline-flex items-center justify-center gap-[6px] shrink-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#f59e0b]"
+            >
+              <LayoutGrid className="w-[17px] h-[17px] shrink-0" />
+              <span className="hidden sm:inline text-[12.5px] font-semibold whitespace-nowrap">
+                Toutes les applis
+              </span>
+            </button>
+
+            {/* Bouton « NEW » */}
+            <button
+              type="button"
+              onClick={() => setActiveModal('new_apps')}
+              aria-label="Nouveautés de la suite Alphabette"
+              className="w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center shrink-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#f59e0b]"
+            >
+              <span className="px-[4px] py-[2px] rounded-[4px] bg-gradient-to-br from-sky-200 to-sky-400 text-[#0f172a] text-[9px] font-extrabold uppercase tracking-tight leading-none">
+                NEW
+              </span>
+            </button>
+          </div>
+
+          {/* Bloc de droite : Bouton Abonnement (bordure dorée) */}
+          <div className="shrink-0 flex items-center">
+            <button
+              type="button"
+              onClick={() => setActiveModal('subscription')}
+              aria-label="Informations sur l'abonnement Alphabette"
+              className="h-[34px] sm:h-[36px] px-[9px] sm:px-[14px] rounded-full bg-white/10 hover:bg-white/15 border-[1.5px] border-[#f59e0b] inline-flex items-center gap-[4px] sm:gap-[6px] whitespace-nowrap cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <Crown className="w-[13px] h-[13px] sm:w-[14px] sm:h-[14px] text-[#f59e0b] shrink-0" />
+              <span className="text-[12px] sm:text-[13.5px] font-bold text-[#fbbf24]">
+                Abonnement
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Droite : BOUTON BIG + SYSTÈME DE DON + AUDIO + THÈME + PARTAGER */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* LE BOUTON BIG (Agrandissement immédiat de l'interface 100% -> 120% -> 135%) */}
-          <button
-            type="button"
-            onClick={handleCycleBigMode}
-            aria-pressed={bigLevel !== 'normal'}
-            title="Agrandir toute l'interface et les textes (Mode BIG)"
-            className={`min-h-[34px] px-3 py-1 rounded-lg font-extrabold text-xs inline-flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer border ${
-              bigLevel !== 'normal'
-                ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm scale-105'
-                : 'bg-slate-900 hover:bg-slate-800 text-amber-400 border-amber-500/50'
-            }`}
-          >
-            <ZoomIn className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>{BIG_LEVELS[bigLevel].label}</span>
-            <span
-              className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                bigLevel !== 'normal'
-                  ? 'bg-slate-950 text-amber-400'
-                  : 'bg-amber-500/20 text-amber-300'
+        {/* 2. BARRE INFÉRIEURE (Barre d'Application & Accessibilité) */}
+        <div className="bg-[#ffffff] dark:bg-[#0f172a] border-b border-[#e2e8f0] dark:border-[#334155] h-[54px] sm:h-[58px] px-[10px] sm:px-[16px] flex items-center justify-between gap-[6px] flex-nowrap">
+          {/* Bloc de gauche : Titre + Sous-titre (<= 25 caractères) */}
+          <div className="min-w-0 flex-1 flex flex-col justify-center">
+            <button
+              type="button"
+              onClick={onNavigateHome}
+              className="text-left inline-flex items-center gap-[5px] min-w-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#4338ca] rounded-[4px]"
+            >
+              <span className="font-bold text-[#3f51b5] dark:text-white text-[14.5px] sm:text-[20px] tracking-tight truncate leading-tight">
+                {appTitle}
+              </span>
+              {isPinned && (
+                <Star className="w-[13px] h-[13px] text-[#f59e0b] fill-[#f59e0b] shrink-0" />
+              )}
+            </button>
+            <span className="text-[9px] sm:text-[10.5px] uppercase tracking-[0.04em] text-[#64748b] dark:text-slate-400 font-semibold truncate leading-tight">
+              {appSubtitle}
+            </span>
+          </div>
+
+          {/* Bloc de droite : Strictly 5 buttons (Don, BIG, Mode Nuit/Jour, Voix, ...) */}
+          <div className="flex items-center gap-[4px] sm:gap-[7px] shrink-0">
+            {/* 1. Bouton Don */}
+            <button
+              type="button"
+              onClick={() => setActiveModal('donation')}
+              aria-label="Faire un don pour soutenir Alphabette"
+              title={isDonor ? 'Merci pour votre soutien !' : 'Faire un don'}
+              className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] rounded-[10px] sm:rounded-[11px] bg-[#db2777] hover:bg-[#be185d] text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#4338ca]"
+            >
+              <Heart className="w-[17px] h-[17px] sm:w-[18px] sm:h-[18px] fill-current" />
+            </button>
+
+            {/* 2. Bouton BIG */}
+            <button
+              type="button"
+              onClick={onToggleBigMode}
+              aria-pressed={isBigMode}
+              aria-label={isBigMode ? 'Désactiver le mode grand texte BIG' : 'Activer le mode grand texte BIG'}
+              className={`h-[34px] sm:h-[38px] px-[8px] sm:px-[11px] rounded-[10px] sm:rounded-[11px] text-white inline-flex items-center gap-[4px] shrink-0 transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-[#f59e0b] ${
+                isBigMode
+                  ? 'bg-[#312e81] ring-2 ring-[#f59e0b]'
+                  : 'bg-[#4338ca] hover:bg-[#3730a3]'
               }`}
             >
-              {BIG_LEVELS[bigLevel].badge}
-            </span>
-          </button>
+              <BarChart2 className="w-[14px] h-[14px] sm:w-[15px] sm:h-[15px] shrink-0" />
+              <span className="font-bold text-[12px] sm:text-[14px] tracking-tight leading-none">
+                BIG
+              </span>
+            </button>
 
-          {/* LE BOUTON SYSTÈME DE DON ALPHABETTE */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsDonationOpen((prev) => !prev);
-              setIsEcosystemOpen(false);
-            }}
-            aria-expanded={isDonationOpen}
-            className={`min-h-[34px] px-3 py-1 rounded-lg font-bold text-xs inline-flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer border ${
-              isDonationOpen
-                ? 'bg-rose-500 text-white border-rose-400 shadow-sm'
-                : isDonor
-                ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/50'
-                : 'bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-xs'
-            }`}
-          >
-            <Heart className="w-3.5 h-3.5 fill-current" />
-            <span>{isDonor ? 'Donateur ❤️' : 'Faire un don'}</span>
-          </button>
+            {/* 3. Bouton Mode Nuit / Jour */}
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={isDark ? 'Passer en mode jour' : 'Passer en mode nuit'}
+              className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] rounded-full bg-[#f1f5f9] dark:bg-[#1e293b] border border-[#e2e8f0] dark:border-[#334155] flex items-center justify-center shrink-0 transition-colors cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-[#4338ca]"
+            >
+              {isDark ? (
+                <Sun className="w-[17px] h-[17px] text-[#fbbf24]" />
+              ) : (
+                <Moon className="w-[17px] h-[17px] text-[#334155]" />
+              )}
+            </button>
 
-          {/* BOUTON AUDIO / LECTURE VOCALE */}
-          <button
-            type="button"
-            onClick={handleToggleQuickVoice}
-            aria-pressed={isReadingPage}
-            title="Lire l'aide vocale à haute voix"
-            className={`min-h-[34px] px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer border ${
-              isReadingPage
-                ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold'
-                : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-800'
-            }`}
-          >
-            {isReadingPage ? (
-              <VolumeX className="w-3.5 h-3.5" />
-            ) : (
-              <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-            )}
-            <span className="hidden lg:inline">{isReadingPage ? 'Stop voix' : 'Voix'}</span>
-          </button>
+            {/* 4. Bouton Lecture à haute voix */}
+            <button
+              type="button"
+              onClick={handleToggleSpeech}
+              aria-pressed={isSpeaking}
+              aria-label={isSpeaking ? 'Arrêter la lecture à haute voix' : 'Lire la page à haute voix'}
+              className={`w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] rounded-full border flex items-center justify-center shrink-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#4338ca] ${
+                isSpeaking
+                  ? 'bg-[#047857] border-[#047857] text-white'
+                  : 'bg-[#f1f5f9] dark:bg-[#1e293b] border-[#e2e8f0] dark:border-[#334155] text-[#334155] dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {isSpeaking ? (
+                <VolumeX className="w-[17px] h-[17px]" />
+              ) : (
+                <Volume2 className="w-[17px] h-[17px]" />
+              )}
+            </button>
 
-          {/* BOUTON PARTAGER */}
-          <button
-            type="button"
-            onClick={handleShareApp}
-            title="Partager l'application"
-            className="min-h-[34px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <Share2 className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden xl:inline">Partager</span>
-          </button>
-
-          {/* BOUTON THÈME CLAIR / ONYX */}
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre Onyx'}
-            className="min-h-[34px] px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            {isDark ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Clair</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Nuit</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* =====================================================================
-          PANNEAU DÉPLIANT : SYSTÈME DE DON ALPHABETTE (100% Indépendant & Sans Pub)
-         ===================================================================== */}
-      {isDonationOpen && (
-        <div className="bg-slate-900 text-white border-b-2 border-rose-500 px-4 sm:px-8 py-5 shadow-xl">
-          <div className="max-w-5xl mx-auto space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-400">
-                  <Heart className="w-4 h-4 fill-current" />
-                  <span>Système de Don Alphabette · 100 % Indépendant & Sans Publicité</span>
-                </div>
-                <h2 className="text-lg sm:text-xl font-bold text-white">
-                  Soutenez l’hébergement du réseau Alphabette (alphabette.fr & infoperso.fr)
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
-                  Toutes nos applications web et mobiles sont gratuites, sans traçage publicitaire et utilisables sans compte obligatoire. Vos dons financent directement le serveur VPS OVH et les 15 noms de domaine .fr.
-                </p>
-              </div>
-
+            {/* 5. Bouton Plus d'options (...) */}
+            <div className="relative" ref={menuRef}>
               <button
                 type="button"
-                onClick={() => setIsDonationOpen(false)}
-                aria-label="Fermer le système de don"
-                className="self-end sm:self-start p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                aria-expanded={isMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Plus d'options"
+                className="w-[34px] h-[34px] sm:w-[38px] sm:h-[38px] rounded-full bg-[#f1f5f9] dark:bg-[#1e293b] border border-[#e2e8f0] dark:border-[#334155] text-[#334155] dark:text-slate-200 flex items-center justify-center shrink-0 transition-colors cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-[#4338ca]"
+              >
+                <MoreHorizontal className="w-[18px] h-[18px]" />
+              </button>
+
+              {/* Menu déroulant avec les 7 entrées exactes */}
+              {isMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Options supplémentaires"
+                  className="absolute right-0 mt-[8px] w-[260px] rounded-[14px] bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-700 shadow-2xl py-[6px] z-50 text-[14px] text-slate-800 dark:text-slate-100"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleTogglePin}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>⭐ Épingler cette appli</span>
+                    {isPinned && (
+                      <span className="text-[11px] font-bold text-[#f59e0b]">Épinglée</span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setActiveModal('subscription');
+                    }}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>👤 Mon inscription</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onToggleSimpleMode();
+                    }}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>🧘 Mode simple</span>
+                    {isSimpleMode && (
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                        Actif
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setActiveModal('install');
+                    }}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>📱 Installer sur mon téléphone</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setActiveModal('feedback');
+                    }}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>💬 Donner mon avis</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      window.print();
+                    }}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>🖨️ Imprimer</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setActiveModal('language');
+                    }}
+                    className="w-full px-[14px] py-[10px] text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>🌐 Langue</span>
+                    <span className="px-[6px] py-[2px] rounded bg-slate-200 dark:bg-slate-800 text-[11px] font-mono font-bold">
+                      {selectedLang}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* =====================================================================
+          MODALES AUTONOMES DE LA DOUBLE BARRE ALPHABETTE
+         ===================================================================== */}
+
+      {/* MODALE : TOUTES LES APPLIS */}
+      {activeModal === 'all_apps' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-all-apps-title"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h2
+                id="modal-all-apps-title"
+                className="text-lg font-bold text-slate-900 dark:text-white"
+              >
+                Toutes les applis Alphabette
+              </h2>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Jauge transparente d'hébergement serveur */}
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-300">
-                  Objectif frais serveur VPS OVH & Domaines .fr du mois :
-                </span>
-                <span className="font-mono font-bold text-emerald-400 tabular-nums">
-                  {serverGoalPercent} % financé grâce à la communauté
-                </span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 transition-all duration-500"
-                  style={{ width: `${serverGoalPercent}%` }}
-                />
-              </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[65vh] overflow-y-auto">
+              {SUITE_APPS.map((app) => {
+                const isFav = favoriteAppIds.includes(app.id);
+                return (
+                  <div
+                    key={app.id}
+                    className="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                  >
+                    <a
+                      href={app.url}
+                      target={app.url.startsWith('http') ? '_blank' : undefined}
+                      rel={app.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      onClick={() => {
+                        if (!app.url.startsWith('http')) setActiveModal(null);
+                      }}
+                      className="min-w-0 flex-1"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">
+                          {app.name}
+                        </span>
+                        <span className="text-xs font-mono text-amber-600 dark:text-amber-400">
+                          {app.domain}
+                        </span>
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {app.description}
+                      </p>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleFavoriteApp(app.id)}
+                      aria-pressed={isFav}
+                      aria-label={
+                        isFav
+                          ? `Retirer ${app.name} des favoris`
+                          : `Ajouter ${app.name} aux favoris`
+                      }
+                      className="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-lg shrink-0 cursor-pointer"
+                    >
+                      {isFav ? '⭐' : '☆'}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Formulaire de don rapide */}
-            <form onSubmit={handleConfirmDonation} className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                {/* Paliers de don */}
-                <div className="lg:col-span-7 space-y-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                    1. Choisissez votre coup de pouce
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {DONATION_PRESETS.map((preset) => {
-                      const isSelected = !customAmount && donationAmount === preset.amount;
-                      return (
-                        <button
-                          key={preset.amount}
-                          type="button"
-                          onClick={() => {
-                            setDonationAmount(preset.amount);
-                            setCustomAmount('');
-                          }}
-                          aria-pressed={isSelected}
-                          className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
-                            isSelected
-                              ? 'bg-rose-600 text-white border-rose-400 shadow-sm'
-                              : 'bg-slate-950/60 border-slate-800 text-slate-200 hover:border-slate-600'
-                          }`}
-                        >
-                          <span className="text-lg font-extrabold font-mono tabular-nums">
-                            {preset.label}
-                          </span>
-                          <span
-                            className={`text-[11px] mt-1 leading-tight ${
-                              isSelected ? 'text-rose-100' : 'text-slate-400'
-                            }`}
-                          >
-                            {preset.desc}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+            <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="min-h-[40px] px-5 py-2 rounded-xl bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 text-xs font-bold cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-                {/* Fréquence, Montant libre & Moyen de paiement */}
-                <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label
-                      htmlFor="custom-donation-input"
-                      className="block text-xs font-bold uppercase tracking-wider text-slate-400"
+      {/* MODALE : NOUVEAUTÉS (NEW) */}
+      {activeModal === 'new_apps' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-new-apps-title"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h2
+                id="modal-new-apps-title"
+                className="text-lg font-bold text-slate-900 dark:text-white"
+              >
+                Nouveautés Alphabette
+              </h2>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {newApps.map((app) => {
+                const isFav = favoriteAppIds.includes(app.id);
+                return (
+                  <div
+                    key={app.id}
+                    className="px-5 py-4 flex items-center justify-between gap-3"
+                  >
+                    <a
+                      href={app.url}
+                      target={app.url.startsWith('http') ? '_blank' : undefined}
+                      rel={app.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      onClick={() => {
+                        if (!app.url.startsWith('http')) setActiveModal(null);
+                      }}
+                      className="min-w-0 flex-1"
                     >
-                      Montant libre (€)
-                    </label>
-                    <input
-                      id="custom-donation-input"
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={customAmount}
-                      onChange={(e) => setCustomAmount(e.target.value)}
-                      placeholder="Autre montant..."
-                      className="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-mono"
-                    />
-                  </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-1.5 py-0.5 rounded bg-sky-200 text-slate-900 text-[10px] font-extrabold">
+                          NEW
+                        </span>
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">
+                          {app.name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {app.description}
+                      </p>
+                    </a>
 
-                  <div className="space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Fréquence
-                    </span>
-                    <div className="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => setDonationFrequency('once')}
-                        className={`py-2 rounded-lg text-xs font-bold cursor-pointer ${
-                          donationFrequency === 'once'
-                            ? 'bg-rose-600 text-white'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Ponctuel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDonationFrequency('monthly')}
-                        className={`py-2 rounded-lg text-xs font-bold cursor-pointer ${
-                          donationFrequency === 'monthly'
-                            ? 'bg-rose-600 text-white'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Mensuel
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleFavoriteApp(app.id)}
+                      aria-pressed={isFav}
+                      aria-label={
+                        isFav
+                          ? `Retirer ${app.name} des favoris`
+                          : `Ajouter ${app.name} aux favoris`
+                      }
+                      className="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-lg shrink-0 cursor-pointer"
+                    >
+                      {isFav ? '⭐' : '☆'}
+                    </button>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                      2. Mode de règlement sécurisé
-                    </span>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'card', label: 'Carte / Stripe' },
-                        { id: 'paypal', label: 'PayPal' },
-                        { id: 'kofi', label: 'Tipeee / Ko-fi' },
-                      ].map((m) => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setPaymentMethod(m.id as 'card' | 'paypal' | 'kofi')}
-                          className={`min-h-[38px] px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer ${
-                            paymentMethod === m.id
-                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold'
-                              : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                          }`}
-                        >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          <span>{m.label}</span>
-                        </button>
-                      ))}
-                    </div>
+            <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="min-h-[40px] px-5 py-2 rounded-xl bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 text-xs font-bold cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE : ABONNEMENT ALPHABETTE (Lancement le 7 mai : 15 € / an ou 40 € / an) */}
+      {activeModal === 'subscription' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-sub-title"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#131722] border-2 border-[#f59e0b] shadow-2xl p-6 space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-[#f59e0b] flex items-center justify-center shrink-0">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2
+                    id="modal-sub-title"
+                    className="text-lg font-bold text-slate-900 dark:text-white"
+                  >
+                    Abonnement Alphabette
+                  </h2>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                    Accès complet sans publicité
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 space-y-2 text-sm text-slate-800 dark:text-slate-200">
+              <p className="font-bold text-slate-900 dark:text-white">
+                Lancement de l’abonnement payant le 7 mai
+              </p>
+              <ul className="space-y-1.5 text-xs sm:text-sm">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>
+                    <strong>15 € / an</strong> pour une application au choix (ex. Radar)
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>
+                    <strong>40 € / an</strong> pour toutes les applications de la suite Alphabette
+                  </span>
+                </li>
+              </ul>
+              <p className="text-xs text-slate-600 dark:text-slate-400 pt-1">
+                En attendant le 7 mai, l’ensemble des fonctionnalités reste librement accessible sans création de compte.
+              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 text-xs font-bold cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE : SYSTÈME DE DON ALPHABETTE */}
+      {activeModal === 'donation' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-donation-title"
+          className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-slate-900 text-white border-2 border-[#db2777] shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-400 uppercase tracking-wider">
+                  <Heart className="w-4 h-4 fill-current" />
+                  <span>Soutien Alphabette · Sans publicité</span>
+                </div>
+                <h2 id="modal-donation-title" className="text-xl font-bold mt-1">
+                  Soutenir le réseau Alphabette
+                </h2>
+                <p className="text-xs text-slate-300 mt-1">
+                  Vos dons financent l’hébergement VPS OVH et les 15 applications sans publicité.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmDonation} className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DONATION_PRESETS.map((preset) => {
+                  const selected = !customAmount && donationAmount === preset.amount;
+                  return (
+                    <button
+                      key={preset.amount}
+                      type="button"
+                      onClick={() => {
+                        setDonationAmount(preset.amount);
+                        setCustomAmount('');
+                      }}
+                      className={`p-3 rounded-xl border text-left cursor-pointer ${
+                        selected
+                          ? 'bg-[#db2777] border-rose-400 text-white'
+                          : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="text-base font-extrabold font-mono">{preset.label}</div>
+                      <div className="text-[11px] opacity-80">{preset.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="modal-custom-don" className="block text-xs text-slate-400 mb-1">
+                    Montant libre (€)
+                  </label>
+                  <input
+                    id="modal-custom-don"
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="Ex: 15"
+                    className="w-full min-h-[40px] px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs text-slate-400 mb-1">Fréquence</span>
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setDonationFrequency('once')}
+                      className={`py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                        donationFrequency === 'once' ? 'bg-[#db2777] text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      Ponctuel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDonationFrequency('monthly')}
+                      className={`py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                        donationFrequency === 'monthly' ? 'bg-[#db2777] text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      Mensuel
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800">
-                <input
-                  type="text"
-                  value={donorMessage}
-                  onChange={(e) => setDonorMessage(e.target.value)}
-                  placeholder="Un petit mot d’encouragement pour l’équipe Alphabette (optionnel)..."
-                  className="flex-1 min-h-[42px] px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
-                />
-
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 cursor-pointer"
+                >
+                  Fermer
+                </button>
                 <button
                   type="submit"
-                  className="min-h-[44px] px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                  className="min-h-[42px] px-5 py-2 rounded-xl bg-[#db2777] hover:bg-[#be185d] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
                 >
-                  <Heart className="w-4 h-4 fill-current" />
+                  <CreditCard className="w-4 h-4" />
                   <span>
-                    Valider mon don de {customAmount || donationAmount} €{' '}
+                    Valider {customAmount || donationAmount} €{' '}
                     {donationFrequency === 'monthly' ? '/ mois' : ''}
                   </span>
                 </button>
@@ -579,177 +918,155 @@ export const AlphabetteDoubleBar: React.FC<AlphabetteDoubleBarProps> = ({
         </div>
       )}
 
-      {/* =====================================================================
-          TIROIR ÉCOSYSTÈME ALPHABETTE (Les 15 sites .fr & infoperso.fr)
-         ===================================================================== */}
-      {isEcosystemOpen && (
-        <div className="bg-slate-900 text-white border-b border-slate-800 px-4 sm:px-8 py-4">
-          <div className="max-w-7xl mx-auto space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                  Écosystème Alphabette (15 domaines .fr)
-                </span>
-                <span className="text-xs text-slate-400">
-                  · Accès direct aux applications web & Android du réseau
-                </span>
-              </div>
+      {/* MODALE : INSTALLER SUR MON TÉLÉPHONE (PWA) */}
+      {activeModal === 'install' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-install-title"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 id="modal-install-title" className="text-lg font-bold text-slate-900 dark:text-white">
+                📱 Installer sur mon téléphone
+              </h2>
               <button
                 type="button"
-                onClick={() => setIsEcosystemOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-                aria-label="Fermer le portail Alphabette"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              {ALPHABETTE_ECOSYSTEM_APPS.map((app) => (
-                <a
-                  key={app.id}
-                  href={app.url}
-                  target={app.url.startsWith('http') ? '_blank' : undefined}
-                  rel={app.url.startsWith('http') ? 'noopener noreferrer' : undefined}
-                  onClick={() => {
-                    if (!app.url.startsWith('http')) setIsEcosystemOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-1 ${
-                    app.active
-                      ? 'bg-amber-500/15 border-amber-500/60 text-white'
-                      : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-bold truncate">{app.name}</span>
-                    {app.active ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    ) : (
-                      <ExternalLink className="w-3 h-3 text-slate-500 shrink-0" />
-                    )}
-                  </div>
-                  <span className="text-[11px] font-mono text-amber-400 truncate">
-                    {app.domain}
-                  </span>
-                  <span className="text-[10px] text-slate-400 truncate">{app.tag}</span>
-                </a>
-              ))}
+            <div className="space-y-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+              <p>
+                <strong>Android (Chrome) :</strong> Appuyez sur le menu <strong>⋮</strong> en haut à droite puis sélectionnez <strong>« Ajouter à l’écran d’accueil »</strong>.
+              </p>
+              <p>
+                <strong>iPhone / iPad (Safari) :</strong> Appuyez sur l’icône <strong>Partager</strong> en bas puis sur <strong>« Sur l’écran d’accueil »</strong>.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="min-h-[40px] px-5 py-2 rounded-xl bg-slate-900 text-white dark:bg-amber-500 dark:text-slate-950 text-xs font-bold cursor-pointer"
+              >
+                Compris
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* =====================================================================
-          BARRE 2 : LA BARRE DE NAVIGATION DE L'APPLICATION RADAR
-         ===================================================================== */}
-      <div className="min-h-[54px] bg-white/95 dark:bg-[#0E1118]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between gap-4">
-        {/* Zone 1 : Logo Radar + Badge Alphabette */}
-        <div className="flex items-center gap-3 shrink-0">
-          <a
-            href="#radar"
-            onClick={(e) => {
-              e.preventDefault();
-              onSelectTab('radar');
-            }}
-            className="inline-flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap font-display"
-          >
-            <span className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-extrabold text-sm">
-              R
-            </span>
-            <span>Radar</span>
-          </a>
-
-          {isDonor && (
-            <span className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[11px] font-bold">
-              <Check className="w-3 h-3" />
-              <span>Mécène Alphabette</span>
-            </span>
-          )}
-        </div>
-
-        {/* Zone 2 : Les 5 Onglets de Navigation */}
-        <nav
-          aria-label="Navigation principale"
-          className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600 dark:text-slate-400"
+      {/* MODALE : DONNER MON AVIS */}
+      {activeModal === 'feedback' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-feedback-title"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <button
-            type="button"
-            onClick={() => onSelectTab('radar')}
-            className={`py-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 inline-flex items-center gap-1.5 ${
-              activeTab === 'radar'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-bold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
+          <form
+            onSubmit={handleSubmitFeedback}
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4"
           >
-            <Radio className="w-4 h-4 text-amber-500" />
-            <span>Radar</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab('explorer')}
-            className={`py-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 inline-flex items-center gap-1.5 ${
-              activeTab === 'explorer'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-bold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Explorer</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab('catchup')}
-            className={`py-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 inline-flex items-center gap-1.5 ${
-              activeTab === 'catchup'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-bold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Headphones className="w-4 h-4 text-amber-500" />
-            <span>Rattrapage</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab('agenda')}
-            className={`py-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 inline-flex items-center gap-1.5 ${
-              activeTab === 'agenda'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-bold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Calendar className="w-4 h-4 text-amber-500" />
-            <span>Agenda</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab('watchlist')}
-            className={`py-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer border-b-2 inline-flex items-center gap-1.5 ${
-              activeTab === 'watchlist'
-                ? 'text-slate-900 dark:text-white border-amber-500 font-bold'
-                : 'border-transparent hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Bookmark className="w-4 h-4 text-amber-500" />
-            <span>Mon Espace ({watchlistCount})</span>
-          </button>
-        </nav>
-
-        {/* Zone 3 : Accès rapide Calibration Goûts & Abonnements */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onOpenOnboarding}
-            className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-800 dark:text-amber-300 text-xs font-bold inline-flex items-center gap-1.5 transition-colors whitespace-nowrap cursor-pointer"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Mes Goûts & Abonnements</span>
-          </button>
+            <div className="flex items-center justify-between">
+              <h2 id="modal-feedback-title" className="text-lg font-bold text-slate-900 dark:text-white">
+                💬 Donner mon avis
+              </h2>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <textarea
+              required
+              rows={3}
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Une suggestion d'amélioration ou une nouvelle chaîne à ajouter à Radar ?"
+              className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-white"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                Fermer
+              </button>
+              <button
+                type="submit"
+                className="min-h-[40px] px-5 py-2 rounded-xl bg-[#4338ca] text-white text-xs font-bold cursor-pointer"
+              >
+                Envoyer
+              </button>
+            </div>
+          </form>
         </div>
-      </div>
-    </header>
+      )}
+
+      {/* MODALE : LANGUE */}
+      {activeModal === 'language' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-lang-title"
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#131722] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 id="modal-lang-title" className="text-lg font-bold text-slate-900 dark:text-white">
+                🌐 Langue de l’interface
+              </h2>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                aria-label="Fermer"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { code: 'FR', label: 'Français (France / Europe)' },
+                { code: 'EN', label: 'English (International)' },
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    setSelectedLang(lang.code);
+                    try {
+                      localStorage.setItem(LANG_KEY, lang.code);
+                    } catch {
+                      // ignore
+                    }
+                    setActiveModal(null);
+                    onShowToast(`Langue active : ${lang.label}`);
+                  }}
+                  className={`w-full p-3 rounded-xl border text-left text-sm font-semibold flex items-center justify-between cursor-pointer ${
+                    selectedLang === lang.code
+                      ? 'bg-[#4338ca] text-white border-[#4338ca]'
+                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                  }`}
+                >
+                  <span>{lang.label}</span>
+                  <span className="font-mono text-xs">{lang.code}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
